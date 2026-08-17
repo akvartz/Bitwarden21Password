@@ -1,0 +1,67 @@
+{
+  "encrypted": false,
+  "folders": [
+    { "id": "aaaaaaaa-0000-0000-0000-000000000001", "name": "Work" }
+  ],
+  "items": [
+    {
+      "id": "bbbbbbbb-0000-0000-0000-000000000001",
+      "organizationId": null,
+      "folderId": "aaaaaaaa-0000-0000-0000-000000000001",
+      "type": 1,
+      "reprompt": 0,
+      "name": "GitHub",
+      "notes": "work account",
+      "favorite": true,
+      "fields": [
+        { "name": "employee id", "value": "4711", "type": 0, "linkedId": null },
+        { "name": "PIN", "value": "1234", "type": 1, "linkedId": null }
+      ],
+      "login": {
+        "fido2Credentials": [
+          {
+            "credentialId": "b64.dGVzdC1jcmVkZW50aWFsLWlk",
+            "keyType": "public-key",
+            "keyAlgorithm": "ECDSA",
+            "keyCurve": "P-256",
+            "keyValue": "b64.TUlHSEFnRUFNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQkcwd2F3SUJBUVFn",
+            "rpId": "github.com",
+            "userHandle": "b64.dXNlci1oYW5kbGU",
+            "userName": "octocat",
+            "counter": "0",
+            "rpName": "GitHub",
+            "userDisplayName": "The Octocat",
+            "discoverable": "true",
+            "creationDate": "2025-11-05T12:00:00.000Z"
+          }
+        ],
+        "uris": [
+          { "match": null, "uri": "https://github.com" }
+        ],
+        "username": "octocat",
+        "password": "hunter2",
+        "totp": "JBSWY3DPEHPK3PXP"
+      },
+      "collectionIds": null
+    },
+    {
+      "id": "bbbbbbbb-0000-0000-0000-000000000002",
+      "organizationId": null,
+      "folderId": null,
+      "type": 3,
+      "reprompt": 0,
+      "name": "Visa",
+      "notes": null,
+      "favorite": false,
+      "card": {
+        "cardholderName": "Alice Example",
+        "brand": "Visa",
+        "number": "4111111111111111",
+        "expMonth": "4",
+        "expYear": "2030",
+        "code": "123"
+      },
+      "collectionIds": null
+    }
+  ]
+}

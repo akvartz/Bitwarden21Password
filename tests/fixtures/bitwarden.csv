@@ -1,0 +1,5 @@
+folder,favorite,type,name,notes,fields,reprompt,login_uri,login_username,login_password,login_totp
+Work,1,login,GitHub,my work account,"employee id: 4711
+PIN: 1234",0,https://github.com,octocat,hunter2,JBSWY3DPEHPK3PXP
+,,login,Example,,,0,https://example.com/login,alice@example.com,s3cret!,
+Personal,,note,Wifi Code,The wifi password is swordfish,,0,,,,
