@@ -1,0 +1,102 @@
+{
+  "version": "1.21.2",
+  "userId": "proton-user",
+  "encrypted": false,
+  "vaults": {
+    "share-1": {
+      "name": "Personal",
+      "description": "",
+      "display": { "color": 0, "icon": 0 },
+      "items": [
+        {
+          "itemId": "item-1",
+          "shareId": "share-1",
+          "data": {
+            "metadata": {
+              "name": "GitHub",
+              "note": "proton note",
+              "itemUuid": "uuid-1"
+            },
+            "extraFields": [
+              { "fieldName": "employee id", "type": "text", "data": { "content": "4711" } },
+              { "fieldName": "recovery code", "type": "hidden", "data": { "content": "abcd-efgh" } }
+            ],
+            "type": "login",
+            "content": {
+              "itemEmail": "octo@example.com",
+              "itemUsername": "octocat",
+              "password": "hunter2",
+              "urls": ["https://github.com", "https://gist.github.com"],
+              "totpUri": "otpauth://totp/GitHub:octocat?secret=JBSWY3DPEHPK3PXP&issuer=GitHub",
+              "passkeys": [
+                {
+                  "keyId": "key-1",
+                  "content": "cHJvdG9uLXBhc3NrZXktYmxvYg==",
+                  "domain": "github.com",
+                  "rpId": "github.com",
+                  "rpName": "GitHub",
+                  "userName": "octocat",
+                  "userDisplayName": "The Octocat",
+                  "userId": "dXNlci1pZA==",
+                  "createTime": 1730000000,
+                  "note": "",
+                  "credentialId": "Y3JlZC1pZA==",
+                  "userHandle": "aGFuZGxl"
+                }
+              ]
+            }
+          },
+          "state": 1,
+          "aliasEmail": null,
+          "contentFormatVersion": 6,
+          "createTime": 1729000000,
+          "modifyTime": 1730000000,
+          "pinned": true
+        },
+        {
+          "itemId": "item-2",
+          "shareId": "share-1",
+          "data": {
+            "metadata": {
+              "name": "Wifi Code",
+              "note": "The wifi password is swordfish",
+              "itemUuid": "uuid-2"
+            },
+            "extraFields": [],
+            "type": "note",
+            "content": {}
+          },
+          "state": 1,
+          "aliasEmail": null,
+          "contentFormatVersion": 6,
+          "createTime": 1729000001,
+          "modifyTime": 1729000001,
+          "pinned": false
+        },
+        {
+          "itemId": "item-3",
+          "shareId": "share-1",
+          "data": {
+            "metadata": { "name": "Visa", "note": "", "itemUuid": "uuid-3" },
+            "extraFields": [],
+            "type": "creditCard",
+            "content": {
+              "cardholderName": "Alice Example",
+              "cardType": 0,
+              "number": "4111111111111111",
+              "verificationNumber": "123",
+              "expirationDate": "04-2030",
+              "pin": "9876"
+            }
+          },
+          "state": 1,
+          "aliasEmail": null,
+          "contentFormatVersion": 6,
+          "createTime": 1729000002,
+          "modifyTime": 1729000002,
+          "pinned": false
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,4 @@
+url,username,password,totp,extra,name,grouping,fav
+https://github.com,octocat,hunter2,JBSWY3DPEHPK3PXP,work account,GitHub,Work,1
+http://sn,,,,"my secure note body",Wifi Code,Personal,0
+https://example.com,alice,pass123,,,Example,,0
