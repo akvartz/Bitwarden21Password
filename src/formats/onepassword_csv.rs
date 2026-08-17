@@ -108,7 +108,10 @@ pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
         if !extras.is_empty() {
             report.info(
                 Some(&item.title),
-                format!("{} extra field(s) folded into the notes block", extras.len()),
+                format!(
+                    "{} extra field(s) folded into the notes block",
+                    extras.len()
+                ),
             );
         }
 

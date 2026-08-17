@@ -17,8 +17,9 @@ use anyhow::{bail, Context, Result};
 use serde_json::{json, Map, Value};
 
 pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
-    let root: Value = serde_json::from_str(data.trim_start_matches('\u{feff}'))
-        .context("protonpass-json: not valid JSON (note: pass the data.json extracted from the export zip)")?;
+    let root: Value = serde_json::from_str(data.trim_start_matches('\u{feff}')).context(
+        "protonpass-json: not valid JSON (note: pass the data.json extracted from the export zip)",
+    )?;
     if root.get("encrypted").and_then(Value::as_bool) == Some(true) {
         bail!("protonpass-json: this export is PGP-encrypted; re-export without PGP encryption");
     }
@@ -30,7 +31,11 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
     let mut vault = Vault::default();
     for (_share_id, v) in vaults {
         let vault_name = v.get("name").and_then(Value::as_str).unwrap_or("Personal");
-        let items = v.get("items").and_then(Value::as_array).cloned().unwrap_or_default();
+        let items = v
+            .get("items")
+            .and_then(Value::as_array)
+            .cloned()
+            .unwrap_or_default();
         for raw in &items {
             if raw.get("state").and_then(Value::as_i64) == Some(2) {
                 // Trashed item — import it anyway but flag it.
@@ -48,7 +53,10 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
                 .and_then(Value::as_str)
                 .filter(|s| !s.is_empty())
                 .map(String::from);
-            let type_str = data_obj.get("type").and_then(Value::as_str).unwrap_or("login");
+            let type_str = data_obj
+                .get("type")
+                .and_then(Value::as_str)
+                .unwrap_or("login");
             let content = data_obj.get("content").cloned().unwrap_or(Value::Null);
 
             let mut fields = Vec::new();
@@ -94,7 +102,10 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
                 "creditCard" => {
                     item.item_type = ItemType::Card;
                     let (exp_month, exp_year) = split_expiration(
-                        content.get("expirationDate").and_then(Value::as_str).unwrap_or(""),
+                        content
+                            .get("expirationDate")
+                            .and_then(Value::as_str)
+                            .unwrap_or(""),
                     );
                     item.card = Some(Card {
                         cardholder_name: nes(&content, "cardholderName"),
@@ -130,7 +141,11 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
                     item.item_type = ItemType::Login;
                     let alias = raw.get("aliasEmail").and_then(Value::as_str).unwrap_or("");
                     item.login = Some(Login {
-                        email: if alias.is_empty() { None } else { Some(alias.to_string()) },
+                        email: if alias.is_empty() {
+                            None
+                        } else {
+                            Some(alias.to_string())
+                        },
                         ..Default::default()
                     });
                     item.fields.push(CustomField::new("proton alias", alias));
@@ -361,7 +376,10 @@ fn split_expiration(s: &str) -> (Option<String>, Option<String>) {
         return (None, None);
     }
     if let Some((m, y)) = s.split_once(['-', '/']) {
-        return (Some(m.trim_start_matches('0').to_string()), Some(y.to_string()));
+        return (
+            Some(m.trim_start_matches('0').to_string()),
+            Some(y.to_string()),
+        );
     }
     if s.len() == 6 && s.chars().all(|c| c.is_ascii_digit()) {
         return (

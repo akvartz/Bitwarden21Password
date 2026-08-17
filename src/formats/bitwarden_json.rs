@@ -121,7 +121,10 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
                 .get("folderId")
                 .and_then(Value::as_str)
                 .and_then(|id| folders.get(id).cloned()),
-            favorite: raw.get("favorite").and_then(Value::as_bool).unwrap_or(false),
+            favorite: raw
+                .get("favorite")
+                .and_then(Value::as_bool)
+                .unwrap_or(false),
             notes: str_of(raw, "notes").map(String::from),
             item_type,
             login,
@@ -142,7 +145,10 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
         .map(|l| l.passkeys.len())
         .sum();
     if n_passkeys > 0 {
-        report.info(None, format!("imported {n_passkeys} passkey(s) with private key material"));
+        report.info(
+            None,
+            format!("imported {n_passkeys} passkey(s) with private key material"),
+        );
     }
     Ok(vault)
 }
@@ -176,7 +182,10 @@ pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
             ItemType::Identity => 4,
         };
         let mut obj = Map::new();
-        obj.insert("id".into(), json!(format!("00000000-0000-0000-0001-{idx:012}")));
+        obj.insert(
+            "id".into(),
+            json!(format!("00000000-0000-0000-0001-{idx:012}")),
+        );
         obj.insert("organizationId".into(), Value::Null);
         obj.insert(
             "folderId".into(),
@@ -200,7 +209,10 @@ pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
                 "Bitwarden has no tags; tag list appended to notes",
             );
         }
-        obj.insert("notes".into(), notes.map(Value::from).unwrap_or(Value::Null));
+        obj.insert(
+            "notes".into(),
+            notes.map(Value::from).unwrap_or(Value::Null),
+        );
         obj.insert("favorite".into(), json!(item.favorite));
 
         if !item.fields.is_empty() {
@@ -238,9 +250,16 @@ pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
                 );
                 l.insert(
                     "password".into(),
-                    login.password.clone().map(Value::from).unwrap_or(Value::Null),
+                    login
+                        .password
+                        .clone()
+                        .map(Value::from)
+                        .unwrap_or(Value::Null),
                 );
-                l.insert("totp".into(), login.totp.clone().map(Value::from).unwrap_or(Value::Null));
+                l.insert(
+                    "totp".into(),
+                    login.totp.clone().map(Value::from).unwrap_or(Value::Null),
+                );
                 let mut creds = Vec::new();
                 for pk in &login.passkeys {
                     if pk.has_portable_key() {

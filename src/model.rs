@@ -24,7 +24,6 @@ pub enum ItemType {
     Identity,
 }
 
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Item {
     pub title: String,
@@ -119,9 +118,25 @@ impl CustomField {
 pub fn looks_concealed(name: &str) -> bool {
     let n = name.to_lowercase();
     const HINTS: &[&str] = &[
-        "password", "passwort", "passphrase", "pin", "secret", "token", "cvv", "cvc",
-        "security code", "private key", "api key", "apikey", "recovery", "seed",
-        "backup code", "otp", "2fa", "totp", "mfa",
+        "password",
+        "passwort",
+        "passphrase",
+        "pin",
+        "secret",
+        "token",
+        "cvv",
+        "cvc",
+        "security code",
+        "private key",
+        "api key",
+        "apikey",
+        "recovery",
+        "seed",
+        "backup code",
+        "otp",
+        "2fa",
+        "totp",
+        "mfa",
     ];
     HINTS.iter().any(|h| n.contains(h))
 }

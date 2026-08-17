@@ -25,8 +25,7 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
         let mut uris: Vec<String> = opt(url).into_iter().collect();
         uris.extend(recovered.urls);
         vault.items.push(Item {
-            title: opt(table.get(rec, "name"))
-                .unwrap_or_else(|| super::title_from_url(url)),
+            title: opt(table.get(rec, "name")).unwrap_or_else(|| super::title_from_url(url)),
             folder: recovered.folder,
             notes,
             item_type: ItemType::Login,

@@ -48,7 +48,11 @@ pub fn unfold_from_notes(notes: Option<&str>) -> (Option<String>, Vec<CustomFiel
     let Some(pos) = notes.find(EXTRAS_HEADER) else {
         let trimmed = notes.trim_end();
         return (
-            if trimmed.is_empty() { None } else { Some(trimmed.to_string()) },
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            },
             Vec::new(),
         );
     };
@@ -62,14 +66,21 @@ pub fn unfold_from_notes(notes: Option<&str>) -> (Option<String>, Vec<CustomFiel
         if let Some((name, value)) = line.split_once(": ") {
             fields.push(CustomField::new(name, value.replace("\\n", "\n")));
         } else if let Some((name, value)) = line.split_once(':') {
-            fields.push(CustomField::new(name.trim(), value.trim().replace("\\n", "\n")));
+            fields.push(CustomField::new(
+                name.trim(),
+                value.trim().replace("\\n", "\n"),
+            ));
         } else {
             fields.push(CustomField::new("note", line));
         }
     }
     let head = head.trim_end();
     (
-        if head.is_empty() { None } else { Some(head.to_string()) },
+        if head.is_empty() {
+            None
+        } else {
+            Some(head.to_string())
+        },
         fields,
     )
 }
@@ -120,7 +131,11 @@ pub fn recover_special_fields(fields: &mut Vec<CustomField>) -> Recovered {
 
 /// Collect everything on `item` that a plain login-CSV format cannot express,
 /// as custom fields destined for the notes appendix.
-pub fn overflow_fields(item: &Item, target_has_folder: bool, target_has_totp: bool) -> Vec<CustomField> {
+pub fn overflow_fields(
+    item: &Item,
+    target_has_folder: bool,
+    target_has_totp: bool,
+) -> Vec<CustomField> {
     let mut extras: Vec<CustomField> = item.fields.clone();
 
     if !item.tags.is_empty() {

@@ -9,8 +9,15 @@ use crate::report::Report;
 use anyhow::Result;
 
 const KNOWN: &[&str] = &[
-    "url", "username", "password", "httprealm", "formactionorigin", "guid", "timecreated",
-    "timelastused", "timepasswordchanged",
+    "url",
+    "username",
+    "password",
+    "httprealm",
+    "formactionorigin",
+    "guid",
+    "timecreated",
+    "timelastused",
+    "timepasswordchanged",
 ];
 const REQUIRED: &[&str] = &["url", "username", "password"];
 
@@ -45,8 +52,15 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
 pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
     let mut wtr = csv::Writer::from_writer(Vec::new());
     wtr.write_record([
-        "url", "username", "password", "httpRealm", "formActionOrigin", "guid", "timeCreated",
-        "timeLastUsed", "timePasswordChanged",
+        "url",
+        "username",
+        "password",
+        "httpRealm",
+        "formActionOrigin",
+        "guid",
+        "timeCreated",
+        "timeLastUsed",
+        "timePasswordChanged",
     ])?;
 
     for item in &vault.items {
@@ -73,8 +87,14 @@ pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
                 ),
             );
         }
-        let created_ms = item.created.map(|t| (t * 1000).to_string()).unwrap_or_default();
-        let modified_ms = item.modified.map(|t| (t * 1000).to_string()).unwrap_or_default();
+        let created_ms = item
+            .created
+            .map(|t| (t * 1000).to_string())
+            .unwrap_or_default();
+        let modified_ms = item
+            .modified
+            .map(|t| (t * 1000).to_string())
+            .unwrap_or_default();
         wtr.write_record([
             login.uris.first().map(String::as_str).unwrap_or(""),
             login.username_or_email().unwrap_or(""),

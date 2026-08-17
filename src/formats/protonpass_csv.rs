@@ -13,8 +13,17 @@ use crate::report::Report;
 use anyhow::Result;
 
 const KNOWN: &[&str] = &[
-    "type", "name", "url", "email", "username", "password", "note", "totp", "createtime",
-    "modifytime", "vault",
+    "type",
+    "name",
+    "url",
+    "email",
+    "username",
+    "password",
+    "note",
+    "totp",
+    "createtime",
+    "modifytime",
+    "vault",
 ];
 const REQUIRED: &[&str] = &["name", "password", "note"];
 
@@ -74,8 +83,17 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
 pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
     let mut wtr = csv::Writer::from_writer(Vec::new());
     wtr.write_record([
-        "type", "name", "url", "email", "username", "password", "note", "totp", "createTime",
-        "modifyTime", "vault",
+        "type",
+        "name",
+        "url",
+        "email",
+        "username",
+        "password",
+        "note",
+        "totp",
+        "createTime",
+        "modifyTime",
+        "vault",
     ])?;
 
     for item in &vault.items {

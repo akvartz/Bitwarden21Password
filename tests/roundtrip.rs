@@ -7,8 +7,11 @@ use pwmigrate::report::Report;
 use pwmigrate::verify;
 
 fn fixture(name: &str) -> String {
-    std::fs::read_to_string(format!("{}/tests/fixtures/{name}", env!("CARGO_MANIFEST_DIR")))
-        .unwrap()
+    std::fs::read_to_string(format!(
+        "{}/tests/fixtures/{name}",
+        env!("CARGO_MANIFEST_DIR")
+    ))
+    .unwrap()
 }
 
 fn import(format: Format, data: &str) -> (Vault, Report) {
@@ -78,8 +81,14 @@ fn bitwarden_csv_to_1password_and_back() {
     assert_eq!(login.totp.as_deref(), Some("JBSWY3DPEHPK3PXP"));
     assert_eq!(login.uris, vec!["https://github.com".to_string()]);
     // Custom fields survive the trip through the notes block.
-    assert!(gh.fields.iter().any(|f| f.name == "employee id" && f.value == "4711"));
-    assert!(gh.fields.iter().any(|f| f.name == "PIN" && f.value == "1234"));
+    assert!(gh
+        .fields
+        .iter()
+        .any(|f| f.name == "employee id" && f.value == "4711"));
+    assert!(gh
+        .fields
+        .iter()
+        .any(|f| f.name == "PIN" && f.value == "1234"));
     // Original notes survive too.
     assert_eq!(gh.notes.as_deref(), Some("my work account"));
     // Folder came back via 1Password tags.
@@ -107,7 +116,10 @@ fn bitwarden_json_passkey_roundtrip() {
     // Round-trip: passkey must survive byte-identical in meaning.
     let (json, report) = export(Format::BitwardenJson, &vault);
     assert!(
-        !report.notes.iter().any(|n| n.message.contains("NOT exported")),
+        !report
+            .notes
+            .iter()
+            .any(|n| n.message.contains("NOT exported")),
         "portable passkey must not be dropped"
     );
     let (back, _) = import(Format::BitwardenJson, &json);
@@ -129,14 +141,20 @@ fn protonpass_json_import_and_roundtrip() {
     assert_eq!(login.email.as_deref(), Some("octo@example.com"));
     assert_eq!(login.uris.len(), 2);
     assert_eq!(login.passkeys.len(), 1);
-    assert!(gh.fields.iter().any(|f| f.name == "recovery code" && f.concealed));
+    assert!(gh
+        .fields
+        .iter()
+        .any(|f| f.name == "recovery code" && f.concealed));
 
     // Card expiration is split.
     let card = vault.items[2].card.as_ref().unwrap();
     assert_eq!(card.exp_month.as_deref(), Some("4"));
     assert_eq!(card.exp_year.as_deref(), Some("2030"));
     // Card PIN preserved as concealed custom field.
-    assert!(vault.items[2].fields.iter().any(|f| f.name == "PIN" && f.value == "9876"));
+    assert!(vault.items[2]
+        .fields
+        .iter()
+        .any(|f| f.name == "PIN" && f.value == "9876"));
 
     // Proton -> Proton keeps the passkey blob verbatim.
     let (json, _) = export(Format::ProtonPassJson, &vault);
@@ -202,8 +220,18 @@ fn all_formats_roundtrip_core_login() {
         let login = back.items[0].login.as_ref().unwrap_or_else(|| {
             panic!("{}: login lost", format.id());
         });
-        assert_eq!(login.username_or_email(), Some("octocat"), "{}", format.id());
-        assert_eq!(login.password.as_deref(), Some("hunter2"), "{}", format.id());
+        assert_eq!(
+            login.username_or_email(),
+            Some("octocat"),
+            "{}",
+            format.id()
+        );
+        assert_eq!(
+            login.password.as_deref(),
+            Some("hunter2"),
+            "{}",
+            format.id()
+        );
         assert_eq!(
             login.uris.first().map(String::as_str),
             Some("https://github.com"),

@@ -30,7 +30,8 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
         }
         let get = |idx: usize| rec.get(idx).unwrap_or("").trim();
         // Heuristic guard: if the first row looks like a header, reject.
-        if i == 0 && (get(1).eq_ignore_ascii_case("title") || get(2).eq_ignore_ascii_case("login")) {
+        if i == 0 && (get(1).eq_ignore_ascii_case("title") || get(2).eq_ignore_ascii_case("login"))
+        {
             anyhow::bail!(
                 "keeper-csv: the first row looks like a CSV header, but Keeper exports have none — is this really a Keeper file?"
             );
@@ -63,7 +64,11 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
             uris: opt(get(4)).into_iter().collect(),
             ..Default::default()
         };
-        let item_type = if login.is_empty() { ItemType::SecureNote } else { ItemType::Login };
+        let item_type = if login.is_empty() {
+            ItemType::SecureNote
+        } else {
+            ItemType::Login
+        };
         vault.items.push(Item {
             title: opt(get(1)).unwrap_or_else(|| "Untitled".into()),
             folder: opt(get(0)),

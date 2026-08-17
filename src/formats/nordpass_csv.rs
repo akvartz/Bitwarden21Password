@@ -13,9 +13,27 @@ use crate::report::Report;
 use anyhow::Result;
 
 const KNOWN: &[&str] = &[
-    "name", "url", "username", "password", "note", "cardholdername", "cardnumber", "cvc",
-    "expirydate", "zipcode", "folder", "full_name", "phone_number", "email", "address1",
-    "address2", "city", "country", "state", "type", "custom_fields",
+    "name",
+    "url",
+    "username",
+    "password",
+    "note",
+    "cardholdername",
+    "cardnumber",
+    "cvc",
+    "expirydate",
+    "zipcode",
+    "folder",
+    "full_name",
+    "phone_number",
+    "email",
+    "address1",
+    "address2",
+    "city",
+    "country",
+    "state",
+    "type",
+    "custom_fields",
 ];
 const REQUIRED: &[&str] = &["name", "url", "username", "password"];
 
@@ -101,9 +119,26 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
 pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
     let mut wtr = csv::Writer::from_writer(Vec::new());
     wtr.write_record([
-        "name", "url", "username", "password", "note", "cardholdername", "cardnumber", "cvc",
-        "expirydate", "zipcode", "folder", "full_name", "phone_number", "email", "address1",
-        "address2", "city", "country", "state", "type",
+        "name",
+        "url",
+        "username",
+        "password",
+        "note",
+        "cardholdername",
+        "cardnumber",
+        "cvc",
+        "expirydate",
+        "zipcode",
+        "folder",
+        "full_name",
+        "phone_number",
+        "email",
+        "address1",
+        "address2",
+        "city",
+        "country",
+        "state",
+        "type",
     ])?;
 
     for item in &vault.items {

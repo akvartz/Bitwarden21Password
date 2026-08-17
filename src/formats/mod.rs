@@ -80,7 +80,9 @@ impl Format {
             Format::BitwardenCsv => "Bitwarden CSV export (logins and secure notes)",
             Format::BitwardenJson => "Bitwarden unencrypted JSON export (all item types, passkeys)",
             Format::OnePasswordCsv => "1Password 8 CSV export/import",
-            Format::ProtonPassJson => "Proton Pass JSON export (data.json from the export zip; passkeys)",
+            Format::ProtonPassJson => {
+                "Proton Pass JSON export (data.json from the export zip; passkeys)"
+            }
             Format::ProtonPassCsv => "Proton Pass CSV export",
             Format::LastPassCsv => "LastPass CSV export",
             Format::ChromeCsv => "Chrome / Edge / Brave / Opera passwords CSV",

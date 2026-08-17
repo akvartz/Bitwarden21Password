@@ -9,7 +9,9 @@ use crate::model::{Item, ItemType, Login, Vault};
 use crate::report::Report;
 use anyhow::Result;
 
-const KNOWN: &[&str] = &["url", "username", "password", "totp", "extra", "name", "grouping", "fav"];
+const KNOWN: &[&str] = &[
+    "url", "username", "password", "totp", "extra", "name", "grouping", "fav",
+];
 const REQUIRED: &[&str] = &["url", "username", "password", "name"];
 
 pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
@@ -24,8 +26,11 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
             crate::extras::unfold_from_notes(opt(table.get(rec, "extra")).as_deref());
         fields.extend(table.unknown_columns(rec, KNOWN));
         let recovered = crate::extras::recover_special_fields(&mut fields);
-        let mut uris: Vec<String> =
-            if is_note { Vec::new() } else { opt(url).into_iter().collect() };
+        let mut uris: Vec<String> = if is_note {
+            Vec::new()
+        } else {
+            opt(url).into_iter().collect()
+        };
         uris.extend(recovered.urls);
 
         let login = Login {
@@ -41,7 +46,11 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
             folder: opt(table.get(rec, "grouping")),
             favorite: parse_bool(table.get(rec, "fav")),
             notes,
-            item_type: if is_note { ItemType::SecureNote } else { ItemType::Login },
+            item_type: if is_note {
+                ItemType::SecureNote
+            } else {
+                ItemType::Login
+            },
             login: Some(login),
             fields,
             tags: recovered.tags,
@@ -53,7 +62,9 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
 
 pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
     let mut wtr = csv::Writer::from_writer(Vec::new());
-    wtr.write_record(["url", "username", "password", "totp", "extra", "name", "grouping", "fav"])?;
+    wtr.write_record([
+        "url", "username", "password", "totp", "extra", "name", "grouping", "fav",
+    ])?;
 
     for item in &vault.items {
         let login = item.login.clone().unwrap_or_default();

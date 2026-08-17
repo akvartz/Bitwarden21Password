@@ -139,8 +139,7 @@ fn cmd_convert(
     let out = target
         .export(&vault, &mut report)
         .with_context(|| format!("failed to export as {}", target.id()))?;
-    std::fs::write(output, out)
-        .with_context(|| format!("cannot write {}", output.display()))?;
+    std::fs::write(output, out).with_context(|| format!("cannot write {}", output.display()))?;
 
     if let Some(rendered) = report.render() {
         eprint!("{rendered}");

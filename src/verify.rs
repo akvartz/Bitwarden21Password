@@ -12,7 +12,11 @@ pub fn validate(vault: &Vault, report: &mut Report) {
     let mut seen: HashMap<(String, String, String), usize> = HashMap::new();
 
     for item in &vault.items {
-        let ctx = if item.title.is_empty() { "<untitled>" } else { item.title.as_str() };
+        let ctx = if item.title.is_empty() {
+            "<untitled>"
+        } else {
+            item.title.as_str()
+        };
 
         if item.title.trim().is_empty() {
             report.warn(None, "item has an empty title");
@@ -81,10 +85,7 @@ pub fn validate(vault: &Vault, report: &mut Report) {
         }
     }
 
-    report.info(
-        None,
-        format!("validated {} item(s)", vault.items.len()),
-    );
+    report.info(None, format!("validated {} item(s)", vault.items.len()));
 }
 
 fn url_problem(url: &str) -> Option<&'static str> {

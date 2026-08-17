@@ -13,8 +13,17 @@ use crate::report::Report;
 use anyhow::Result;
 
 const KNOWN: &[&str] = &[
-    "folder", "favorite", "type", "name", "notes", "fields", "reprompt", "login_uri",
-    "login_username", "login_password", "login_totp",
+    "folder",
+    "favorite",
+    "type",
+    "name",
+    "notes",
+    "fields",
+    "reprompt",
+    "login_uri",
+    "login_username",
+    "login_password",
+    "login_totp",
 ];
 const REQUIRED: &[&str] = &["name", "login_username", "login_password"];
 
@@ -51,7 +60,11 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
         };
 
         vault.items.push(Item {
-            title: if name.is_empty() { "Untitled".into() } else { name.to_string() },
+            title: if name.is_empty() {
+                "Untitled".into()
+            } else {
+                name.to_string()
+            },
             folder: opt(table.get(rec, "folder")),
             favorite: super::parse_bool(table.get(rec, "favorite")),
             notes: opt(table.get(rec, "notes")),
@@ -72,8 +85,17 @@ pub fn import(data: &str, report: &mut Report) -> Result<Vault> {
 pub fn export(vault: &Vault, report: &mut Report) -> Result<String> {
     let mut wtr = csv::Writer::from_writer(Vec::new());
     wtr.write_record([
-        "folder", "favorite", "type", "name", "notes", "fields", "reprompt", "login_uri",
-        "login_username", "login_password", "login_totp",
+        "folder",
+        "favorite",
+        "type",
+        "name",
+        "notes",
+        "fields",
+        "reprompt",
+        "login_uri",
+        "login_username",
+        "login_password",
+        "login_totp",
     ])?;
 
     for item in &vault.items {
