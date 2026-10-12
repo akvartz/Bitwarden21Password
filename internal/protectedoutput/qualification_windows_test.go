@@ -91,7 +91,10 @@ func windowsQualificationReadHelperPhase(base string) (string, string, uint32) {
 	if err != nil {
 		return "process_start", "marker_parent_open", windowsQualificationDiagnosticCode(err)
 	}
-	handle, openErr := windowsChild(root, "helper-phase.txt", false, false, syscall.GENERIC_READ, nil)
+	// NtCreateFile's FILE_SYNCHRONOUS_IO_NONALERT option requires an
+	// explicit SYNCHRONIZE bit. FILE_GENERIC_READ includes it; passing the
+	// unmapped GENERIC_READ bit alone violates that native API contract.
+	handle, openErr := windowsChild(root, "helper-phase.txt", false, false, windows.FILE_GENERIC_READ, nil)
 	closeErr := syscall.CloseHandle(root)
 	if openErr != nil {
 		if _, err := os.Lstat(filepath.Join(base, "helper-phase.txt")); os.IsNotExist(err) {
@@ -124,6 +127,33 @@ func windowsQualificationReadHelperPhase(base string) (string, string, uint32) {
 		return phase, "marker_value", 0
 	}
 	return phase, "marker_ok", 0
+}
+
+func TestWindowsQualificationFixedMarkerReader(t *testing.T) {
+	for _, test := range []struct {
+		name, contents, phase, reason string
+		hardlink                      bool
+	}{
+		{"known_phase", "writer", "writer", "marker_ok", false},
+		{"unknown_phase", "synthetic opaque value", "process_start", "marker_value", false},
+		{"bounded_read", strings.Repeat("x", 33), "process_start", "marker_limit", false},
+		{"hardlink", "complete", "process_start", "marker_object", true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			parent := windowsPrivateParent(t)
+			marker := filepath.Join(parent, "helper-phase.txt")
+			if os.WriteFile(marker, []byte(test.contents), 0600) != nil {
+				t.Fatal("native fixed-marker fixture creation failed")
+			}
+			if test.hardlink && os.Link(marker, filepath.Join(parent, "second-link.txt")) != nil {
+				t.Fatal("native fixed-marker hardlink fixture creation failed")
+			}
+			phase, reason, code := windowsQualificationReadHelperPhase(parent)
+			if phase != test.phase || reason != test.reason || code != 0 {
+				t.Fatal("native fixed-marker diagnostic result differed")
+			}
+		})
+	}
 }
 
 // The randomly generated temporary account password goes only to native API

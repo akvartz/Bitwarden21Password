@@ -199,3 +199,20 @@ then requires the real non-elevated process identity and strict private-writer
 checks. Bounded diagnostics add fixed marker reasons and numeric native/exit
 statuses without paths, SIDs, passwords or child stdout/stderr. Separate source
 reviews and Windows cross-build/vet pass; no native success is inferred.
+
+## Public macOS evidence and Windows diagnostic correction
+
+[CI 38216802179](https://github.com/akvartz/Bitwarden21Password/actions/runs/38216802179)
+at exact `f0c8f15fd6a05a484f667c485352449f5da515a7` passed both macOS native
+jobs with public output enabled. This includes ordinary provider conversion,
+live JSON approval, key creation, whole-source recovery/restoration and the
+native privacy suites. Both Linux native jobs, Linux race/root/helper guards,
+packaging and all six actual packaged native binaries passed as well.
+
+Both Windows children started and created their diagnostic markers but exited
+nonzero. The parent's anchored marker opener returned EINVAL: its synchronous
+NtCreateFile options require an explicit SYNCHRONIZE access bit. The test-only
+correction uses FILE_GENERIC_READ, preserving no-reparse/single-link and bounded
+fixed-code reads, with known/unknown/overlimit/hardlink regressions. Reading the
+marker will identify the remaining child failure; this correction alone does
+not qualify Windows or enable public output.
