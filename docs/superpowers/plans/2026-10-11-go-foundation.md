@@ -117,8 +117,8 @@ Main owns these steps and docs/agentic/go-migration-status.md.
 - [x] Inspect owned diffs, gofmt, go vet and whole suite results. Rust tests remain unavailable; unchanged Rust is not silently counted as checked.
 - [x] Fresh whole-branch reviewer and separate adversarial reviewer examine actual changes against the baseline. Resolve concrete blockers and re-review material fixes.
 - [x] Update durable ledger with delivered behavior, actual evidence, reviewed head, limitations, and next ready M2 task. Preserve future gates.
-- [ ] Commit final evidence/docs, inspect git show --stat and clean status, push feature branch, open and attach PR using exact body file. Read CI/review state for that head. Do not merge this security-sensitive implementation.
-- [ ] Complete the bounded native goal only after its design/plan/M1/PR requirements are met. Report remaining product milestones and any provisioning/native-provider checks separately.
+- [x] Commit final evidence/docs, inspect git show --stat and status, publish the verified tree on a feature branch, open and attach PR with a structured body, and read CI/review state. PR #2 is open/unmerged; GitHub returned no statuses, workflow runs or submitted reviews. Terminal Git transport failed, so the authenticated connector published an equal tree without rewriting local history.
+Goal closeout: complete the bounded native goal after the final published tree/head check. M2-M6 and provisioning/native-provider gates remain separately tracked in the status document.
 
 ## Preflight consistency record
 
