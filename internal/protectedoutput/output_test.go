@@ -44,6 +44,10 @@ func TestUnsupportedPlatformHasNoFilesystemEffects(t *testing.T) {
 	cancel()
 	result, err := Write(ctx, parent, []byte("synthetic payload"))
 	requireFailure(t, result, err, "output_platform")
+	for _, name := range []string{"bitwarden.json", "onepassword.1pux", "proton-pass.zip"} {
+		result, err := WriteNamed(ctx, parent, name, []byte("synthetic payload"))
+		requireFailure(t, result, err, "output_platform")
+	}
 	entries, err := os.ReadDir(parent)
 	if err != nil || len(entries) != 0 {
 		t.Fatal("unsupported write changed the parent")

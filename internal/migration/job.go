@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 
@@ -25,17 +24,25 @@ type Review struct {
 }
 
 type Issue struct {
-	ID      string `json:"id"`
-	Code    string `json:"code"`
-	Column  int    `json:"column,omitempty"`
-	Records int    `json:"records,omitempty"`
+	ID        string         `json:"id"`
+	Code      string         `json:"code"`
+	Column    int            `json:"column,omitempty"`
+	Records   int            `json:"records,omitempty"`
+	Locations []FieldOrdinal `json:"locations,omitempty"`
+}
+
+type FieldOrdinal struct {
+	Record int `json:"record"`
+	Field  int `json:"field"`
 }
 
 type Receipt struct {
-	Plan         Plan   `json:"plan"`
-	Profile      string `json:"profile"`
-	JobDirectory string `json:"job_directory"`
-	FileName     string `json:"file_name"`
+	Plan                 Plan   `json:"plan"`
+	Profile              string `json:"profile"`
+	JobDirectory         string `json:"job_directory"`
+	FileName             string `json:"file_name"`
+	RecoveryJobDirectory string `json:"recovery_job_directory,omitempty"`
+	RecoveryFileName     string `json:"recovery_file_name,omitempty"`
 }
 
 // Job is a handle: copying its value preserves the same one-shot authority.
@@ -44,14 +51,15 @@ type Receipt struct {
 type Job struct{ private *jobState }
 
 type jobState struct {
-	mu          sync.Mutex
-	state       string
-	document    *Document
-	selection   []int
-	parent      string
-	payload     []byte
-	review      Review
-	writeOutput func(context.Context, string, []byte) (protectedoutput.Result, error)
+	mu             sync.Mutex
+	state          string
+	document       *Document
+	selection      []int
+	parent         string
+	payload        []byte
+	review         Review
+	writeOutput    func(context.Context, string, []byte) (protectedoutput.Result, error)
+	recoveryResult protectedoutput.Result
 }
 
 // NewJob validates output entirely in memory before permitting approval or I/O.
@@ -70,28 +78,58 @@ func (d *Document) NewJob(target Format, selection []int, parent string) (*Job, 
 	if err != nil {
 		return nil, &SafeError{Code: "output_parent"}
 	}
-	selected := make([]int, 0, plan.SelectedRecords)
-	if selection == nil {
-		for record := 1; record <= len(d.chromeRows); record++ {
-			selected = append(selected, record)
-		}
-	} else {
-		selected = append(selected, selection...)
-		sort.Ints(selected)
-	}
-	payload, err := exportChrome(d, selected)
+	selected, err := d.selectedOrdinals(selection)
 	if err != nil {
 		return nil, err
 	}
-	review := Review{Plan: plan, Profile: chromeBitwardenProfile, ReviewID: rand.Text(), Issues: reviewIssues(d, selected)}
+	var payload []byte
+	profile := chromeBitwardenProfile
+	issues := []Issue{}
+	name := "bitwarden.json"
+	if d.format == ChromeCSV && target == BitwardenJSON {
+		payload, err = exportChrome(d, selected)
+		issues = reviewIssues(d, selected)
+	} else {
+		payload, err = d.exportProvider(target, selected)
+		profile = providerProfile(d.format, target)
+		issues = providerReviewIssues(plan)
+		if err == nil && target == BitwardenJSON {
+			mapped, mapErr := d.mappedItems(target, selectedOrNil(selected))
+			if mapErr != nil {
+				return nil, mapErr
+			}
+			issues = append(issues, bitwardenTargetIssues(mapped)...)
+		}
+		switch target {
+		case OnePassword1PUX:
+			name = "onepassword.1pux"
+		case ProtonPassZIP:
+			name = "proton-pass.zip"
+		}
+	}
+	if d.format == FirefoxCSV {
+		issues = append(issues, Issue{ID: "browser-generated-title", Code: "browser_generated_title", Records: len(selected)})
+	}
+	if d.format == SafariCSV {
+		issues = append(issues, Issue{ID: "browser-totp-profile", Code: "browser_totp_profile", Records: len(selected)})
+	}
+	if err != nil {
+		return nil, err
+	}
+	review := Review{Plan: plan, Profile: profile, ReviewID: rand.Text(), Issues: issues}
 	return &Job{private: &jobState{
 		state: "planned", document: d, selection: selected, parent: absolute,
-		payload: payload, review: review, writeOutput: protectedoutput.Write,
+		payload: payload, review: review, writeOutput: func(ctx context.Context, parent string, payload []byte) (protectedoutput.Result, error) {
+			return protectedoutput.WriteNamed(ctx, parent, name, payload)
+		},
 	}}, nil
 }
 
 func clonePlan(plan Plan) Plan {
 	plan.Fields = append([]FieldDisposition{}, plan.Fields...)
+	if plan.Metadata != nil {
+		plan.Metadata = append([]FieldDisposition{}, plan.Metadata...)
+	}
 	plan.DuplicateGroups = cloneGroups(plan.DuplicateGroups)
 	plan.Caveats = append([]string{}, plan.Caveats...)
 	return plan
@@ -107,6 +145,11 @@ func (j *Job) Review() Review {
 	review := p.review
 	review.Plan = clonePlan(review.Plan)
 	review.Issues = append([]Issue{}, review.Issues...)
+	for i := range review.Issues {
+		if review.Issues[i].Locations != nil {
+			review.Issues[i].Locations = append([]FieldOrdinal{}, review.Issues[i].Locations...)
+		}
+	}
 	return review
 }
 
@@ -188,7 +231,7 @@ func (j *Job) Commit(ctx context.Context) (Receipt, error) {
 		}
 	}
 	plan.Caveats = caveats
-	return Receipt{Plan: plan, Profile: p.review.Profile, JobDirectory: result.JobDirectory, FileName: result.FileName}, nil
+	return Receipt{Plan: plan, Profile: p.review.Profile, JobDirectory: result.JobDirectory, FileName: result.FileName, RecoveryJobDirectory: p.recoveryResult.JobDirectory, RecoveryFileName: p.recoveryResult.FileName}, nil
 }
 
 func (j *Job) fail(code string) (Receipt, error) {

@@ -85,11 +85,35 @@ func Pack(ctx context.Context, options Options) error {
 	if err := verifySource(ctx, root, options.Commit); err != nil {
 		return err
 	}
+	// A clean pinned checkout does not prove that extracted dependency sources
+	// or cached module ZIPs still match their downloaded checksums. Verify the
+	// offline cache before creating any release directory or artifact.
+	if _, err := run(ctx, root, buildEnv("", ""), "go", "mod", "verify"); err != nil {
+		return errors.New("cannot verify pinned dependencies")
+	}
+	// mod verify trusts the cache's mutable .ziphash. Loading each target's
+	// actual build dependencies also checks that hash against committed go.sum.
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		for _, goarch := range []string{"amd64", "arm64"} {
+			if _, err := run(ctx, root, buildEnv(goos, goarch), "go", "list", "-deps", "-mod=readonly", "./cmd/pwmigrate"); err != nil {
+				return errors.New("cannot verify pinned dependencies")
+			}
+		}
+	}
+	// Fail before any artifact writes if dependency loading changed source
+	// inputs, including go.mod or go.sum, despite readonly module resolution.
+	if err := verifySource(ctx, root, options.Commit); err != nil {
+		return errors.New("cannot verify pinned dependencies")
+	}
 	license, err := os.ReadFile(filepath.Join(root, "LICENSE"))
 	if err != nil {
 		return err
 	}
 	readme, err := os.ReadFile(filepath.Join(root, "README.md"))
+	if err != nil {
+		return err
+	}
+	notices, err := os.ReadFile(filepath.Join(root, "THIRD-PARTY-NOTICES.md"))
 	if err != nil {
 		return err
 	}
@@ -133,7 +157,7 @@ func Pack(ctx context.Context, options Options) error {
 			if err := os.Remove(binaryPath); err != nil {
 				return err
 			}
-			data, err := makeArchive(info, binary, license, readme)
+			data, err := makeArchive(info, binary, license, readme, notices)
 			if err != nil {
 				return err
 			}
@@ -219,6 +243,7 @@ func run(ctx context.Context, root string, env []string, program string, args ..
 func buildEnv(goos, goarch string) []string {
 	overrides := map[string]string{
 		"GOTOOLCHAIN": "local", "GOPROXY": "off", "GOSUMDB": "off", "CGO_ENABLED": "0",
+		"GOPRIVATE": "", "GONOPROXY": "none", "GONOSUMDB": "none",
 		"GOENV": "off", "GOFLAGS": "", "GOWORK": "off", "GO111MODULE": "on",
 		"GOEXPERIMENT": "", "GOAMD64": "v1", "GOARM64": "v8.0",
 	}
@@ -239,7 +264,7 @@ func buildEnv(goos, goarch string) []string {
 	return env
 }
 
-func makeArchive(info BuildInfo, binary, license, readme []byte) ([]byte, error) {
+func makeArchive(info BuildInfo, binary, license, readme, notices []byte) ([]byte, error) {
 	metadata, err := json.MarshalIndent(info, "", "  ")
 	if err != nil {
 		return nil, err
@@ -254,7 +279,7 @@ func makeArchive(info BuildInfo, binary, license, readme []byte) ([]byte, error)
 		mode int64
 		data []byte
 	}{
-		{binaryName, 0755, binary}, {"LICENSE", 0644, license}, {"README.md", 0644, readme}, {"BUILD-INFO.json", 0644, metadata},
+		{binaryName, 0755, binary}, {"LICENSE", 0644, license}, {"README.md", 0644, readme}, {"THIRD-PARTY-NOTICES.md", 0644, notices}, {"BUILD-INFO.json", 0644, metadata},
 	}
 	var output bytes.Buffer
 	if info.GOOS == "windows" {

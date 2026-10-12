@@ -23,6 +23,9 @@ func (d *Document) parseBitwarden(detected bool) error {
 	if _, err := decoder.Token(); err != io.EOF {
 		return &SafeError{Code: "invalid_json"}
 	}
+	if !fieldPathBudget(value, 0) {
+		return &SafeError{Code: "field_path_limit"}
+	}
 	envelopeCode := "invalid_json"
 	if detected {
 		envelopeCode = "unknown_format"
@@ -94,6 +97,7 @@ func (d *Document) parseBitwarden(detected bool) error {
 		d.inventory.Fields += countJSONFields(item)
 	}
 	d.bitwardenRoot = root
+	d.provider = bitwardenProvider(root)
 	return nil
 }
 

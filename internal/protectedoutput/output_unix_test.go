@@ -1,4 +1,4 @@
-//go:build linux
+//go:build linux || darwin
 
 package protectedoutput
 
@@ -36,7 +36,7 @@ func TestWritePrivateExactAndNoClobber(t *testing.T) {
 	payload := []byte("{\"items\":[\" synthetic \",\"\\r\\n\",\"世界\"]}\n")
 	var previous Result
 	for range 2 {
-		result, err := Write(context.Background(), parent, payload)
+		result, err := candidateWrite(context.Background(), parent, payload)
 		if err != nil {
 			t.Fatalf("write failed: %v", err)
 		}
@@ -76,14 +76,14 @@ func TestWriteRejectsInsecureOrInvalidParent(t *testing.T) {
 			if err := os.Chmod(parent, mode); err != nil {
 				t.Fatal(err)
 			}
-			result, err := Write(context.Background(), parent, []byte("synthetic payload"))
+			result, err := candidateWrite(context.Background(), parent, []byte("synthetic payload"))
 			requireFailure(t, result, err, "output_parent")
 			assertEmpty(t, parent)
 		})
 	}
 	t.Run("missing", func(t *testing.T) {
 		parent := filepath.Join(privateParent(t), "missing")
-		result, err := Write(context.Background(), parent, nil)
+		result, err := candidateWrite(context.Background(), parent, nil)
 		requireFailure(t, result, err, "output_parent")
 		assertAbsent(t, parent)
 	})
@@ -92,7 +92,7 @@ func TestWriteRejectsInsecureOrInvalidParent(t *testing.T) {
 		if err := os.WriteFile(parent, []byte("synthetic original"), 0600); err != nil {
 			t.Fatal(err)
 		}
-		result, err := Write(context.Background(), parent, nil)
+		result, err := candidateWrite(context.Background(), parent, nil)
 		requireFailure(t, result, err, "output_parent")
 		assertContents(t, parent, "synthetic original")
 	})
@@ -106,7 +106,7 @@ func TestWriteRejectsForeignParentOwner(t *testing.T) {
 	if err := os.Chown(parent, 1, -1); err != nil {
 		t.Fatal(err)
 	}
-	result, err := Write(context.Background(), parent, nil)
+	result, err := candidateWrite(context.Background(), parent, nil)
 	requireFailure(t, result, err, "output_parent")
 	assertEmpty(t, parent)
 }
@@ -115,7 +115,7 @@ func TestWriteCancelledCreatesNothing(t *testing.T) {
 	parent := privateParent(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	result, err := Write(ctx, parent, []byte("synthetic payload"))
+	result, err := candidateWrite(ctx, parent, []byte("synthetic payload"))
 	requireFailure(t, result, err, "output_cancelled")
 	assertEmpty(t, parent)
 }
@@ -229,11 +229,24 @@ func TestCreatedModesMustBeExact(t *testing.T) {
 			ops := namedOps()
 			if phase == "job" {
 				ops.mkdir = func(r *os.Root, name string, perm os.FileMode) error {
-					return r.Mkdir(name, 0750)
+					if err := r.Mkdir(name, 0700); err != nil {
+						return err
+					}
+					// Establish the faulty effective mode independently of the
+					// process umask; a restrictive umask can mask requested bits.
+					return r.Chmod(name, 0750)
 				}
 			} else {
 				ops.openFile = func(r *os.Root, name string, flag int, perm os.FileMode) (*os.File, error) {
-					return r.OpenFile(name, flag, 0640)
+					file, err := r.OpenFile(name, flag, 0600)
+					if err != nil {
+						return nil, err
+					}
+					if err := file.Chmod(0640); err != nil {
+						file.Close()
+						return nil, err
+					}
+					return file, nil
 				}
 			}
 			result, err := writeWithOps(context.Background(), parent, []byte("synthetic payload"), ops)
@@ -524,7 +537,7 @@ func TestReadbackUsesSameHandleAndHandlesShortReads(t *testing.T) {
 
 func TestWriteEmptyPayload(t *testing.T) {
 	parent := privateParent(t)
-	result, err := Write(context.Background(), parent, nil)
+	result, err := candidateWrite(context.Background(), parent, nil)
 	if err != nil {
 		t.Fatalf("empty payload failed: %v", err)
 	}

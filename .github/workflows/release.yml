@@ -77,6 +77,13 @@ jobs:
     env:
       GOTOOLCHAIN: local
       GOPROXY: 'off'
+      GOPRIVATE: ''
+      GONOPROXY: 'none'
+      GONOSUMDB: 'none'
+      GOSUMDB: 'off'
+      GOENV: 'off'
+      GOWORK: 'off'
+      GOFLAGS: ''
       TAG: ${{ needs.resolve.outputs.tag }}
       COMMIT: ${{ needs.resolve.outputs.commit }}
     steps:
@@ -89,6 +96,14 @@ jobs:
           go-version: '1.26.9'
           check-latest: false
           cache: false
+      - name: Fetch and verify pinned build dependencies
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        run: |
+          go mod download
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
       - name: Build six platform archives
         run: |
           test "$(git rev-parse HEAD)" = "$COMMIT"
@@ -228,4 +243,4 @@ jobs:
           gh release create "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" \
             --verify-tag --target "$COMMIT" --draft --prerelease --latest=false \
             --title "pwmigrate-go $TAG" \
-            --notes "Experimental CLI build for synthetic evaluation at commit $COMMIT. Linux supports the reviewed Chrome CSV to Bitwarden JSON route. macOS and Windows support read-only commands; conversion is disabled. Provider acceptance is unverified; encrypted inputs, recovery and signing remain incomplete. Checksums provide integrity checks, not authenticity. Review the packaged README and BUILD-INFO.json before use."
+            --notes "Experimental migration CLI candidate at commit $COMMIT. Linux supports reviewed provider and browser conversion profiles, bounded local encrypted input, age recovery and supplied re-export comparison. macOS and Windows protected writing remains disabled pending native qualification. Provider import acceptance and signing remain unverified. Checksums provide integrity checks, not authenticity. Review the packaged README, BUILD-INFO.json and documented qualification gates before use."

@@ -1,4 +1,4 @@
-//go:build !linux
+//go:build !linux && !darwin && !windows
 
 package protectedoutput
 
@@ -8,5 +8,9 @@ import "context"
 func Supported() bool { return false }
 
 func write(context.Context, string, []byte) (Result, error) {
+	return Result{}, &Error{Code: "output_platform"}
+}
+
+func writeNamed(context.Context, string, string, []byte) (Result, error) {
 	return Result{}, &Error{Code: "output_platform"}
 }

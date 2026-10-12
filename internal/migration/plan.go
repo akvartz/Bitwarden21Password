@@ -1,9 +1,29 @@
 package migration
 
+import (
+	"sort"
+	"strconv"
+)
+
 // Plan accounts for selected cells without producing an export or asserting import success.
 // nil selects all records; a supplied empty selection is invalid.
 func (d *Document) Plan(target Format, selection []int) (Plan, error) {
-	if d == nil || d.format != ChromeCSV || target != BitwardenJSON {
+	if d == nil {
+		return Plan{}, &SafeError{Code: "unsupported_route"}
+	}
+	if IsBrowserFormat(d.format) {
+		if target == BitwardenJSON {
+			return d.planCSV(target, selection)
+		}
+		if target == OnePassword1PUX || target == ProtonPassZIP {
+			return d.planBrowserProvider(target, selection)
+		}
+	}
+	return d.planProvider(target, selection)
+}
+
+func (d *Document) planCSV(target Format, selection []int) (Plan, error) {
+	if d == nil || !IsBrowserFormat(d.format) || target != BitwardenJSON {
 		return Plan{}, &SafeError{Code: "unsupported_route"}
 	}
 	total := len(d.chromeRows)
@@ -26,7 +46,7 @@ func (d *Document) Plan(target Format, selection []int) (Plan, error) {
 		}
 	}
 	plan := Plan{
-		Source:          ChromeCSV,
+		Source:          d.format,
 		Target:          BitwardenJSON,
 		State:           "planned",
 		TotalRecords:    total,
@@ -54,6 +74,14 @@ func (d *Document) Plan(target Format, selection []int) (Plan, error) {
 				field.TargetField = "login.password"
 			case "note":
 				field.TargetField = "notes"
+			case "totp":
+				if d.format == SafariCSV {
+					field.TargetField = "login.totp"
+				} else {
+					field.TargetField = "fields"
+					field.Disposition = "relocated"
+					field.Concealed = true
+				}
 			default:
 				field.TargetField = "fields"
 				field.Disposition = "relocated"
@@ -73,5 +101,34 @@ func (d *Document) Plan(target Format, selection []int) (Plan, error) {
 			plan.DuplicateGroups = append(plan.DuplicateGroups, retained)
 		}
 	}
+	return plan, nil
+}
+
+func (d *Document) planBrowserProvider(target Format, selection []int) (Plan, error) {
+	plan, err := d.planCSV(BitwardenJSON, selection)
+	if err != nil {
+		return Plan{}, err
+	}
+	selected, err := d.selectedOrdinals(selection)
+	if err != nil {
+		return Plan{}, err
+	}
+	mapped, err := d.mappedItems(target, selectedOrNil(selected))
+	if err != nil {
+		return Plan{}, err
+	}
+	plan.Target = target
+	for i := range plan.Fields {
+		field := &plan.Fields[i]
+		recordIndex := sort.SearchInts(selected, field.Record)
+		if recordIndex >= len(mapped) {
+			return Plan{}, &SafeError{Code: "output_validation"}
+		}
+		mapping := mapped[recordIndex].mappings["/"+strconv.Itoa(field.Field-1)]
+		field.Disposition = mapping.disposition
+		field.TargetField = mapping.target
+		field.Concealed = mapping.concealed
+	}
+	plan.Caveats = append(plan.Caveats, "intermediary_mapping")
 	return plan, nil
 }

@@ -1,0 +1,102 @@
+# pwmigrate 1.0 acceptance and execution ledger
+
+Updated 2026-10-12 UTC. Objective: the finished, qualified 1.0 Go CLI in the
+accepted design and supplied [handoff](handoff-1.0.0.md). **Not yet complete.**
+Tags, publication and security-sensitive merges remain maintainer actions.
+
+Canonical base: `7777ae112f787b8d6e1ddbc00b24f0496733501b`, independently checked
+against ordinary Git fetch and live PR #4 merged state. Work is on
+`feat/1.0-release`, preserving earlier histories. This ledger substitutes for a
+native goal API, which is unavailable. The referenced personal working agreement
+is absent; AGENTS.md, accepted design and the handoff govern this session.
+Local primary-source research scratch is excluded from Git and build inputs.
+
+## Acceptance matrix
+
+| Gate | Current implementation and evidence | Remaining completion condition |
+| --- | --- | --- |
+| Provider routes | Six directional Bitwarden/1PUX/Proton profiles; strict snapshots; login/note/card/identity and documented typed fields; intermediary losses disclosed; independent/adversarial review | Actual disposable-vault import and re-export qualification for each claimed profile |
+| Browser sources | Chrome/Chromium, native Firefox and Safari/OTPAuth CSV into all three providers: nine routes; primary schema evidence and independent fixtures | Native browser export and destination import qualification |
+| Auditable fidelity | Every selected leaf/empty container and metadata field receives a disposition; exact credentials/duplicates retained; unsafe unfamiliar records block; omitted attachments/passkeys/vault relationships require exact review | Provider observations of supported values and disclosed losses; no working passkey claim |
+| SSH | Ed25519 Bitwarden↔1PUX; RSA 2048/3072/4096 1PUX→Bitwarden; maintained SSH/x509 parsing, exact ASN member checks and bounded RSA validation; independent/adversarial re-review clean | Native import/agent authentication; reverse RSA metadata token unverified and blocked; Proton SSH blocked |
+| Archives | Extraction-free ZIP, local/central/index validation, compressed/expanded/entry/depth bounds, unconditional CRC and complete compressed-span consumption; negative/fuzz/race reviews | Native exporter fixtures and provider archive acceptance |
+| Encrypted inputs | Bitwarden password-protected PBKDF2/Argon2id authenticated envelopes; bounded Proton OpenPGP profile; independent cryptography/GnuPG/provider component vectors, tamper tests and two review seats | Native app-created encrypted-export qualification; account-bound/unknown profiles remain rejected |
+| Recovery | age v1.3.2 X25519 writer/reader, authenticated exact whole-original framing, key handling, standalone save/recover and conversion retention; static upstream vector and both official CLI directions for all six formats pass | Other implementation testing is distinct; user verifies saved key/original during provider qualification |
+| Selection/comparison | Intersecting ordinal item/vault/folder/kind selection; multiset destination comparison, ambiguity/unobservable fields; SSH key representations compared semantically; no values/fingerprints in reports | Supplied native destination re-export tests; comparison never certifies import/authentication |
+| Linux output | Native private anchored output, fixed names, no replacement, sync/readback/close, cancellation/fault/concurrency tests; reviewer probes including recovery failure/cancellation pass | Final exact-commit CI/root and packaged runtime checks |
+| macOS/Windows output | Reviewed native candidate ACL/DACL/owner/local-volume boundaries and fault tests; candidate test binaries cross-compile; public writes remain disabled | Native candidate tests plus real second-principal access denial/rejected-volume/junction probes; enable only after evidence, then native public CLI journeys |
+| CLI | Human/JSON help, safe inventory/plan/review/receipts, explicit one-shot issue acknowledgment, progress, exact hidden/stdin/JSON passwords, recovery/comparison; actual PTY and blocked-stream signal probes pass independent/adversarial review | Final packaged/native end-to-end smoke and usability qualification |
+| Documentation | Full ordinary-user journeys, limits, recovery/selection/comparison and directional matrix; stale merged status corrected; provider procedure explicitly NOT RUN | Synthetic-only kit checks all fifteen routes/591 values; twelve retained protocol/privacy tests pass; final native acceptance and candidate links/evidence pending |
+| Release candidate | Pinned patched Go 1.26.9; six-target no-clobber packager and existing guarded draft workflow; dependency-cache tamper review | Dependency pin/source/cache/environment gates and two review seats pass; clean-commit archives/asset guards and exact-head hosted/native and packaged runtime evidence pending |
+| Stable promotion | Runbook defines deliberate v1.0.0 build/promotion; no tag/release created | All qualification gates; explicit signing/notarization/provenance policy; user-owned merge/tag/draft/promotion |
+
+## Dependencies and execution
+
+The user explicitly authorized fetching maintained pinned dependencies on
+2026-10-12: x/crypto v0.58.0, gopenpgp/v3 v3.5.2, age v1.3.2 and required
+transitive dependencies. The reviewed graph is frozen in go.mod/go.sum; it also
+includes direct go-crypto v1.5.2, x/sys v0.49.0 and x/term v0.47.0. No tools were
+installed. The already-provisioned toolchain is Go 1.26.9 at
+`/workspace/toolchains/go1.26.9/go/bin/go`; `/usr/bin/go` is unrelated software.
+
+Local checks use GOTOOLCHAIN=local, GOPROXY=off, GOCACHE=/tmp/pwmigrate-go-build
+and GOMODCACHE=/tmp/pwmigrate-go-mod. Fetching is a separate bounded build step
+through the configured proxy. circl v1.6.3 was fetched from its allowed upstream
+with GOPROXY=direct after the module proxy's storage redirect was denied; the
+configured network proxy remained in use. Hosted workflows separately download
+and verify pins, require unchanged module files, then test/build offline.
+
+## Review and verification evidence
+
+- Full uncached Go suite, full uncached race suite, full vet and ten Python
+  release-guard tests passed before the final SSH/dependency/CLI corrections.
+  The final integrated uncached suite, full race suite and vet passed after SSH, dependency preflight and provider exact-output guard integration. A later formats capability Boolean passed its focused RED/GREEN; native-only fixtures await hosted execution.
+- Independent and adversarial seats covered parsing/archives, provider mappings,
+  field accounting, crypto/recovery, approval/output, selection/comparison,
+  actual CLI processes and workflow permissions. Synthetic fixtures only.
+- Review-driven RED/GREEN corrections include archive zero-CRC and ignored
+  compressed-tail data; transient/deep JSON path amplification; cross-route
+  quadratic accounting; understated importer-loss locations; terminal signal
+  restoration and canonical-line truncation; blocked prompt/report/completion
+  cancellation; and duplicate/unknown ASN fields in PKCS8/RSA containers.
+  Scoped post-fix re-reviews pass. The coordinated mutable module-cache hash and inherited private-module
+  network bypass findings were reproduced, fixed with maintained Go preflights
+  and explicit offline environment pins, then passed separate re-reviews.
+- Official age CLI interoperation passed for six formats in both directions,
+  independently framed with opaque binary source bytes. The executable was
+  built, not installed, from the authorized pinned age v1.3.2 module and reports
+  `(devel)`; it is the official CLI using the maintained implementation, not
+  independent cryptographic implementation evidence. The opt-in test makes
+  this check reproducible with a provisioned absolute executable path.
+- Linux tests execute native operations. macOS/Windows candidate test binaries
+  have only cross-compiled locally; no native success is asserted. Hosted native fixtures now include real alternate-principal denial and
+  ordinary-user positive output, foreign-owner rejection, private retained
+  partials, permitted/rejected volumes and real junction controls. Separate
+  source review found and corrected a native API call and fixture ownership/
+  cleanup premises; cross-compilation never substitutes for executing them.
+- Actual provider imports, native app-created encrypted exports, SSH agent
+  authentication, foreign-platform archive runtime smoke, signing and public
+  release promotion are NOT RUN. Checklists do not substitute for results.
+
+## Next executable steps
+
+1. Finish synthetic kit and packaged-native helper reviews; the dependency-pin
+   preflight and exact generated-provider-output guards are integrated and pass
+   independent and adversarial review. All fifteen routes pass 591 independent
+   local kit checks, with every actual import still NOT RUN. The kit refuses
+   duplicate JSON keys, wrong item/custom/concealment types and completion plans
+   that differ from the live approved review; fixed-error regressions cover
+   malformed protocol and archive failures. The archive/native smoke helper
+   passes fifteen regressions plus separate adversarial probes before execution.
+2. Run final integrated checks, commit explicit owned paths, package all six
+   targets from the clean exact commit and verify every member/header/metadata/
+   checksum plus packaged Linux journeys.
+3. Push the feature branch, attach a reviewable unmerged PR and obtain fresh
+   exact-head hosted CI, including candidate native privacy qualification.
+   Correct native failures; enable supported writers only after evidence.
+4. Run the concrete synthetic provider qualification procedure with the user;
+   record provider/version/platform/case outcomes. Continue independent work
+   while awaiting results; never receive real vault files or credentials.
+5. Resolve delivery authenticity/provenance policy and record remaining native
+   architecture evidence. Only a fully qualified candidate can be called 1.0
+   ready; publication remains the maintainer's deliberate action.
