@@ -68,7 +68,7 @@ func parseProton(data []byte) (*providerData, error) {
 		return nil, &SafeError{Code: "invalid_json"}
 	}
 	d := &providerData{root: root, files: files, vaultCount: len(vaults), caveats: []string{
-		"proton_export_coverage_limited", "proton_aliases_not_migrated", "proton_vault_relationships_not_migrated", "proton_passkeys_not_migrated", "proton_attachments_not_migrated", "proton_duplicate_detection_not_evaluated",
+		"proton_export_coverage_limited", "proton_aliases_not_migrated", "proton_vault_relationships_not_migrated", "proton_passkeys_not_migrated", "proton_attachments_not_migrated",
 	}}
 	for key, child := range root {
 		if key != "vaults" {

@@ -204,7 +204,7 @@ func (d *Document) planProvider(target Format, selection []int) (Plan, error) {
 	if err != nil {
 		return Plan{}, err
 	}
-	plan := Plan{Source: d.format, Target: target, State: "planned", TotalRecords: d.inventory.Records, SelectedRecords: len(selected), ExcludedRecords: d.inventory.Records - len(selected), Fields: []FieldDisposition{}, DuplicateGroups: [][]int{}, Caveats: append([]string{}, d.inventory.Caveats...)}
+	plan := Plan{Source: d.format, Target: target, State: "planned", TotalRecords: d.inventory.Records, SelectedRecords: len(selected), ExcludedRecords: d.inventory.Records - len(selected), Fields: []FieldDisposition{}, DuplicateGroups: selectedProviderDuplicateGroups(d.inventory.DuplicateGroups, selected, d.inventory.Records), Caveats: append([]string{}, d.inventory.Caveats...)}
 	plan.Caveats = append(plan.Caveats, "planned_only_no_output", "destination_import_not_verified", "provider_metadata_not_migrated")
 	for i, ordinal := range selected {
 		for j, field := range d.provider.records[ordinal-1].fields {

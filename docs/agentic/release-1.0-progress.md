@@ -28,7 +28,7 @@ Local primary-source research scratch is excluded from Git and build inputs.
 | Recovery | age v1.3.2 X25519 writer/reader, authenticated exact whole-original framing, key handling, standalone save/recover and conversion retention; static upstream vector and both official CLI directions for all six formats pass | Other implementation testing is distinct; user verifies saved key/original during provider qualification |
 | Selection/comparison | Intersecting ordinal item/vault/folder/kind selection; multiset destination comparison, ambiguity/unobservable fields; SSH key representations compared semantically; no values/fingerprints in reports | Supplied native destination re-export tests; comparison never certifies import/authentication |
 | Linux output | Native private anchored output, fixed names, no replacement, sync/readback/close, cancellation/fault/concurrency tests; reviewer probes including recovery failure/cancellation pass | Final exact-commit CI/root and packaged runtime checks |
-| macOS/Windows output | macOS native amd64/arm64 privacy and public journeys passed; Windows native amd64/arm64 standard-user, ACL/owner/volume/reparse/failure qualification passed; public writers enabled on all three OSes | Fresh native Windows public conversion/recovery journeys, followed by final exact-commit/artifact evidence |
+| macOS/Windows output | Native amd64/arm64 privacy and public conversion/recovery journeys passed on both platforms; exact Windows PowerShell recipe passed on both architectures; public writers enabled on all three OSes | Final exact-commit/artifact evidence |
 | CLI | Human/JSON help, safe inventory/plan/review/receipts, explicit one-shot issue acknowledgment, progress, exact hidden/stdin/JSON passwords, recovery/comparison; actual PTY and blocked-stream signal probes pass independent/adversarial review | Final packaged/native end-to-end smoke and usability qualification |
 | Documentation | Full ordinary-user journeys, limits, recovery/selection/comparison and directional matrix; stale merged status corrected; provider procedure explicitly NOT RUN; default kit fifteen routes/591 checks and additive SSH companion six routes/144 checks | Default twelve and companion fourteen regressions pass; final native acceptance and immutable candidate links/evidence pending |
 | Release candidate | Pinned patched Go 1.26.9; six-target no-clobber packager and existing guarded draft workflow; dependency-cache tamper review | Dependency pin/source/cache/environment gates and two review seats pass; clean-commit archives/asset guards and exact-head hosted/native and packaged runtime evidence pending |
@@ -85,25 +85,20 @@ and verify pins, require unchanged module files, then test/build offline.
 
 ## Next executable steps
 
-1. Finish synthetic kit and packaged-native helper reviews; the dependency-pin
-   preflight and exact generated-provider-output guards are integrated and pass
-   independent and adversarial review. All fifteen routes pass 591 independent
-   local kit checks, with every actual import still NOT RUN. The kit refuses
-   duplicate JSON keys, wrong item/custom/concealment types and completion plans
-   that differ from the live approved review; fixed-error regressions cover
-   malformed protocol and archive failures. The archive/native smoke helper
-   passes fifteen regressions plus separate adversarial probes before execution.
-2. Run final integrated checks, commit explicit owned paths, package all six
-   targets from the clean exact commit and verify every member/header/metadata/
-   checksum plus packaged Linux journeys.
-3. Push the feature branch, attach a reviewable unmerged PR and obtain fresh
-   exact-head hosted CI, including candidate native privacy qualification.
-   Correct native failures; enable supported writers only after evidence.
-4. Run the concrete synthetic provider qualification procedure with the user;
+1. Complete current ordinary-user documentation and release-workflow archive
+   continuity reviews. Provider duplicate/empty-container corrections and all existing synthetic kit, packaged
+   helper, dependency-pin and exact-output guard reviews are complete. Public
+   writers and their native setup/journeys passed on all six targets.
+2. Commit explicit owned paths, pin packaged documentation to a reviewed public
+   source snapshot, then package all six targets from the clean exact commit
+   with a fresh candidate version. Verify every member/header/metadata/checksum,
+   prepare both private synthetic kits with the stamped Linux binary, and obtain
+   fresh exact-head hosted CI. PR #5 and the resulting artifact metadata carry
+   post-build evidence; this ledger is a pre-build documentation snapshot.
+3. Run the concrete synthetic provider qualification procedure with the user;
    record provider/version/platform/case outcomes. Continue independent work
    while awaiting results; never receive real vault files or credentials.
-5. Resolve delivery authenticity/provenance policy and record remaining native
-   architecture evidence. Only a fully qualified candidate can be called 1.0
+4. Resolve delivery authenticity/provenance policy. Only a fully qualified candidate can be called 1.0
    ready; publication remains the maintainer's deliberate action.
 
 ## Initial clean candidate and hosted evidence
@@ -329,3 +324,47 @@ The same acceptance audit reproduced a second bounded accounting gap: an empty
 Bitwarden root `items` array is excluded from metadata. It must count as an
 empty-container field and receive a disposition, while nonempty records remain
 record fields only. This correction is being completed with provider grouping.
+
+## All-platform public output and documented setup qualified
+
+[CI 38226720660](https://github.com/akvartz/Bitwarden21Password/actions/runs/38226720660)
+at exact `d85907c6424d18d3396a9d3b0b1485d56945181d` passed **all fourteen jobs**.
+Both Windows public provider/CLI conversion, live approval, key and exact
+whole-source recovery journeys passed, as did the actual documented inbox
+PowerShell recipe, private ACL/public byte/no-clobber assertions and all native
+privacy qualification gates. The arm64 protected-output package completed in
+62.994 seconds with the bounded cold allowance; this pass does not establish
+the earlier timeout's exact cause. The recipe covers the runner account;
+standard-user writer qualification remains the distinct native child test.
+Both macOS architectures, Linux race/root/helper guards and all six actual
+packaged native binaries also passed. Later source changes still require fresh
+exact-head evidence. Native provider acceptance/authentication and authenticity
+policy remain unfinished gates.
+
+## Provider preflight and empty-export accounting closed
+
+Provider inventories now flag conservative `exact_provider_content_v1`
+candidates using the complete raw item tree and native vault/folder boundaries.
+Only well-typed identity and creation/update values at fixed native paths are
+exempt. Credentials, key representations, unknown content, number tokens,
+whitespace and ordered arrays remain exact. Reports contain ordinal groups
+only; selected plans filter original ordinals, preserve multiplicity and own
+their review/approval snapshots. The exact-only caveat prevents interpreting
+an empty group list as uniqueness. No record is merged or removed.
+
+An empty Bitwarden root `items` array now consumes one global field-budget leaf,
+appears in metadata and receives a disposition without creating a record or
+double-counting a nonempty item tree. Independent literal RED probes for all
+three providers and empty/encrypted empty exports are GREEN. Full uncached Go
+tests, full race tests, full vet, twelve default-kit and fourteen SSH-kit guards
+pass after these changes. Independent and adversarial source reviews pass;
+additional separate acceptance overlays cover lexical/Unicode/value/type
+distinctions, malformed/native bookkeeping, boundary containers, all 255
+selection subsets, source immutability, deep report ownership and redaction.
+
+Final delivery review found the draft workflow rebuilt tag-stamped archives
+after native checks of differently stamped CI assets. The remaining workflow
+correction must natively check the requested tag version and carry the same
+checked archive set to publishing, preserving the guarded publisher boundary.
+It remains un-dispatched; native smoke means version/help/formats, separately
+from source-built public CLI conversion/recovery and actual provider acceptance.

@@ -80,7 +80,7 @@ func TestInspectBitwardenKeepsMetadataAndUnknownFieldsPrivate(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Records != 1 || got.Fields != 6 || got.MetadataFields != 3 || got.Kinds["login"] != 1 || got.DuplicateDetection != "not_evaluated" {
+	if got.Records != 1 || got.Fields != 6 || got.MetadataFields != 3 || got.Kinds["login"] != 1 || got.DuplicateDetection != "exact_provider_content_v1" {
 		t.Fatalf("incorrect Bitwarden accounting: %+v", got)
 	}
 	assertRedacted(t, stdout+stderr, path)

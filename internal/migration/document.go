@@ -125,11 +125,15 @@ func Parse(data []byte, source Format) (*Document, error) {
 		d.inventory = newInventory(source)
 		d.inventory.Records = len(d.provider.records)
 		d.inventory.MetadataFields = len(d.provider.metadata)
-		d.inventory.DuplicateDetection = "not_evaluated"
 		d.inventory.Caveats = append(d.inventory.Caveats, d.provider.caveats...)
 		for _, record := range d.provider.records {
 			d.inventory.Fields += len(record.fields)
 			d.inventory.Kinds[record.kind]++
+		}
+	}
+	if d.provider != nil {
+		if err := d.inventoryProviderDuplicates(); err != nil {
+			return nil, err
 		}
 	}
 	return d, nil

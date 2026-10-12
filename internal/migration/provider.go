@@ -172,8 +172,9 @@ type mappedRecord struct {
 func bitwardenProvider(root map[string]any) *providerData {
 	p := &providerData{root: root, files: map[string][]byte{}, vaultCount: 1}
 	metadata := make(map[string]any, len(root))
+	items, _ := root["items"].([]any)
 	for key, value := range root {
-		if key != "items" {
+		if key != "items" || len(items) == 0 {
 			metadata[key] = value
 		}
 	}
@@ -193,7 +194,6 @@ func bitwardenProvider(root map[string]any) *providerData {
 			}
 		}
 	}
-	items, _ := root["items"].([]any)
 	for _, value := range items {
 		item := value.(map[string]any)
 		kind := "unknown"
