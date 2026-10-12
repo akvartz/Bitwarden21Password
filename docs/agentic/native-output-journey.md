@@ -1,8 +1,9 @@
 # Prepare a private output directory on Windows or macOS
 
-**Current status: public Windows/macOS output is disabled pending native
-qualification.** These instructions prepare an ordinary user's directory;
-they do not enable a disabled binary or establish native provider acceptance.
+**Current status: macOS output is enabled after native amd64/arm64 privacy
+qualification; Windows output remains disabled pending native qualification.**
+These instructions prepare an ordinary user's directory; they do not enable a
+disabled binary or establish native provider acceptance.
 Authored platform tests and cross-compilation are separate from successful
 native CI execution. The CLI needs no provider login or administrator account
 for ordinary output.
@@ -224,9 +225,11 @@ The requirements above follow the current
 [Windows native handle/volume checks](../../internal/protectedoutput/native_windows.go),
 [Windows writer](../../internal/protectedoutput/output_windows.go) and
 [macOS privacy checks](../../internal/protectedoutput/output_darwin.go).
-Current platform writers return `output_platform` publicly. Ordinary-user
-parent preparation and public CLI output need native tests for the exact
-reviewed candidate before that guard is enabled.
+The Windows writer returns `output_platform` publicly until native qualification
+passes. macOS privacy qualification passed on amd64 and arm64 before public
+enablement; fresh public CLI conversion/recovery journeys must be recorded for
+the enabled candidate. Ordinary-user parent preparation and public CLI output
+need native evidence for the exact reviewed candidate.
 The Windows fixture uses equivalent current-token native directory/security
 APIs; it does not execute this PowerShell/.NET recipe. The command recipes have
 source/static review only until native execution is recorded.

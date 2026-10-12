@@ -104,7 +104,8 @@ retention separate from destination outcomes.
 | `containers-selection` | Two vaults/folders with overlapping local item IDs; test whole-export default and intersecting item/vault/folder/kind filters in source order; observe disclosed relationship loss |
 | `unknown-fields-metadata` | Unfamiliar scalar/empty-object/empty-array fields and root metadata all receive dispositions and exact review locations; omission is never counted as native migration |
 | `files-passkeys` | Synthetic attachment/icon members and passkey payloads receive explicit loss review; recovery preserves the whole original, with no claim that destination attachments/passkeys function |
-| `ssh-key-profile` | Ed25519 Bitwarden ↔ 1PUX and RSA 2048/3072/4096-bit 1PUX → Bitwarden preserve key semantics with disclosed representation changes; native acceptance/authentication need separate user-run evidence |
+| `ssh-key-profile` | Ed25519 across all provider directions; RSA 2048/3072/4096-bit Bitwarden ↔ Proton and 1PUX → Bitwarden/Proton; check private/public/fingerprint consistency, exact retained strings or disclosed representation changes; native acceptance/authentication remain separate |
+| `ssh-sections-fingerprint` | Bitwarden fingerprint relocates to a hidden Proton section; Proton → Bitwarden derives its required native fingerprint without interpreting arbitrary labels; text/hidden sections relocate exactly while grouping/TOTP/timestamp/unknown fields require loss review |
 | `unsupported-record` | Unsupported SSH profile/route, alias, unknown type or attachment-only unsupported item blocks selected conversion; deliberate exclusion is visible and independent `recovery-save` retains the original |
 | `bounded-large-fields` | Long synthetic fields and realistic item counts; converter/provider rejection or truncation recorded separately; no universal plaintext limit inferred |
 | `browser-schema` | Native Chrome/Firefox/Safari column sets, quoted commas/quotes and embedded CRLF, optional unfamiliar columns, generated title or OTP field issues as applicable |
@@ -114,9 +115,12 @@ retention separate from destination outcomes.
 ## Run each destination test
 
 1. Build or extract the exact reviewed candidate. Record `version --json` and
-   `formats --json`. Current public output runs on Linux. You can manually
+   `formats --json`. Public output is enabled for Linux and macOS in the
+   candidate; the newly enabled macOS CLI journeys still need fresh CI.
+   Prepare a suitable private parent using the
+   [native output journey](native-output-journey.md). You can manually
    transfer a synthetic successful artifact to a native destination app on
-   another platform; that tests its importer, not the disabled platform writer.
+   another platform; that tests its importer, not that platform's writer.
 2. Create the original synthetic source and independent local expectation
    table. If using encrypted input, preserve the original and password locally.
    Inspect it, then plan the route with the intended filters.
@@ -188,7 +192,21 @@ URLs/autofillUrls. Record favorite loss even when `pinned` appears in generated
 JSON, since the researched importer does not reconstruct it. Check folder and
 vault metadata loss, new UUIDs/vaults, trash/timestamps, typed extras and actual
 card-expiry interpretation. Unsupported alias ownership and passkey behavior
-remain separate from accepting logins/notes/cards/identities.
+remain separate from accepting logins/notes/cards/identities/SSH keys.
+
+For SSH, create independent synthetic keys in native applications and test each
+admitted direction and key size. Bitwarden ↔ Proton permits Ed25519 and RSA
+2048/3072/4096-bit pairs; Ed25519 also permits Proton ↔ 1PUX through Bitwarden;
+RSA 1PUX → Proton is admitted while Bitwarden/Proton RSA → 1PUX stays blocked.
+Verify exact OpenSSH/private/public strings where promised, and mathematical
+key consistency separately when PKCS#8/PKCS#1 becomes OpenSSH. Compare the exact
+source fingerprint's disclosed hidden-field relocation and supported custom
+section values without interpreting arbitrary labels as native metadata.
+Record grouping and unsupported section-type loss, and original representations
+that the re-export cannot observe. Then use a native client/integration against
+a disposable SSH server you own if qualifying authentication; accepting a key
+item or matching a supplied re-export does not prove a working SSH login. Never
+publish private keys, public-key text or source-derived fingerprints.
 
 ## Safe result template
 

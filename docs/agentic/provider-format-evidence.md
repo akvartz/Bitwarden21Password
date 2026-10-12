@@ -197,6 +197,51 @@ Mappings supported by independently reviewed key names include login password↔
 
 Bitwarden URI matching maps in the reviewed Proton importer: base-domain/default→0, host→1, never→2, starts-with→3, regular-expression→5, exact→6. Pattern mode 4 has no evidenced Bitwarden equivalent. Android `androidapp://` URIs become platform allowed-app data in the native importer; they are not ordinary website URLs.
 
+### Proton SSH projection and candidate mappings
+
+The pinned Proton item model declares native `data.type:"sshKey"` with
+`content:{privateKey:string,publicKey:string,sections:[{sectionName,sectionFields}]}`.
+This is a native SSH item, not a login or a notes encoding. The reviewed
+[Bitwarden reader](https://github.com/ProtonMail/WebClients/blob/d70c6131012876da970d08f81fdcbb89723a88f1/packages/pass/lib/import/providers/bitwarden/bitwarden.reader.ts#L93)
+passes the raw private/public strings to
+[the SSH import constructor](https://github.com/ProtonMail/WebClients/blob/d70c6131012876da970d08f81fdcbb89723a88f1/packages/pass/lib/import/helpers/transformers.ts#L239).
+The [mapping utility](https://github.com/ProtonMail/WebClients/blob/d70c6131012876da970d08f81fdcbb89723a88f1/packages/pass/lib/import/providers/bitwarden/bitwarden.utils.ts#L135)
+places Bitwarden `keyFingerprint` in section `Extra fields`, as a hidden field
+named `Key fingerprint`, with its original string in `data.content`.
+These are public schema/importer literals, not a claim that native import or
+authentication has been run.
+
+The candidate admits validated Ed25519 and RSA 2048/3072/4096-bit pairs for
+Bitwarden ↔ Proton. Existing maintained, bounded SSH parsing checks supported
+PEM material, public-key consistency and the Bitwarden source's required SHA256
+fingerprint. Encrypted individual SSH keys and other key types/profiles remain
+unsupported.
+
+- **Bitwarden → Proton:** admitted unencrypted PKCS#8, RSA PKCS#1 and OpenSSH
+  private strings, and the exact public text, are retained in native key fields.
+  The exact source fingerprint relocates to the documented hidden section field;
+  it does not become a native Proton fingerprint property. Source custom fields
+  retain only their admitted/disclosed destination representations.
+- **Proton → Bitwarden:** an admitted OpenSSH private string remains exact;
+  PKCS#8/PKCS#1 is re-encoded as OpenSSH and receives a transformed disposition.
+  The original private representation is consequently unobservable there. The
+  required Bitwarden SHA256 fingerprint is derived privately from the validated
+  key pair. Arbitrary section names/labels are never decoded as native
+  fingerprint metadata.
+- **SSH section fields:** admitted text/hidden values relocate to Bitwarden
+  custom fields with exact original names, values and concealment. Section
+  grouping labels remain unsupported; TOTP, timestamp and unfamiliar section
+  types require explicit unsupported-field review. A recovered original can
+  preserve them, but recovery does not count as their destination migration.
+- **Composed routes:** Ed25519 works through the audited Bitwarden model in both
+  Proton ↔ 1PUX directions. RSA 2048/3072/4096-bit 1PUX → Proton uses the admitted
+  1PUX → Bitwarden source mapping. Bitwarden/Proton RSA → 1PUX is blocked pending
+  an independently verified 1PUX writer `metadata.keyType` literal.
+
+Generated-output pair validation and independent local key/field checks remain
+separate from provider-native acceptance and SSH authentication. Every route is
+experimental; native import/authentication qualification is **NOT RUN**.
+
 ## Encryption and recovery dependency gate
 
 No implementation or provider acceptance is established by this dependency research. Provisioning is a prerequisite to independently reviewed crypto work; missing modules must not be replaced with invented primitives.

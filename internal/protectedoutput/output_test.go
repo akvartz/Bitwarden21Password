@@ -30,14 +30,20 @@ func TestErrorAllowlist(t *testing.T) {
 }
 
 func TestUnsupportedPlatformHasNoFilesystemEffects(t *testing.T) {
-	if runtime.GOOS == "linux" {
+	switch runtime.GOOS {
+	case "linux", "darwin":
 		if !Supported() {
-			t.Fatal("Linux output must be supported")
+			t.Fatal("qualified platform output must be supported")
 		}
 		return
-	}
-	if Supported() {
-		t.Fatal("unqualified platform must fail closed")
+	case "windows":
+		if Supported() {
+			t.Fatal("Windows output must remain disabled pending native qualification")
+		}
+	default:
+		if Supported() {
+			t.Fatal("unsupported platform must fail closed")
+		}
 	}
 	parent := t.TempDir()
 	ctx, cancel := context.WithCancel(context.Background())

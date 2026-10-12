@@ -164,7 +164,7 @@ func (d *Document) comparisonUnobservable(target Format, ordinal int, item mappe
 			code = "source_field_unobservable"
 		case comparisonExcludedTarget(target, mapping.target):
 			code = "provider_metadata_unobservable"
-		case strings.Contains(mapping.target, "sshKey") && strings.HasSuffix(mapping.target, "privateKey"):
+		case d.provider != nil && d.provider.records[ordinal-1].kind == "ssh_key" && comparisonSSHPrivateField(d.format, field.path):
 			code = "ssh_original_representation_unobservable"
 		}
 		if code != "" {
@@ -172,6 +172,34 @@ func (d *Document) comparisonUnobservable(target Format, ordinal int, item mappe
 		}
 	}
 	return result
+}
+
+// The original representation of a declared private key cannot be established
+// by semantic comparison, including composed routes whose mapping is provider_item.
+// Arbitrary custom fields and key-type metadata are not private key representations.
+func comparisonSSHPrivateField(format Format, path string) bool {
+	switch format {
+	case BitwardenJSON:
+		return path == "/sshKey/privateKey"
+	case ProtonPassZIP:
+		return path == "/data/content/privateKey"
+	case OnePassword1PUX:
+		parts := strings.Split(path, "/")
+		if len(parts) != 9 && len(parts) != 10 {
+			return false
+		}
+		if parts[0] != "" || parts[1] != "details" || parts[2] != "sections" || parts[4] != "fields" || parts[6] != "value" || parts[7] != "sshKey" {
+			return false
+		}
+		for _, index := range []string{parts[3], parts[5]} {
+			ordinal, err := strconv.Atoi(index)
+			if err != nil || ordinal < 0 || strconv.Itoa(ordinal) != index {
+				return false
+			}
+		}
+		return len(parts) == 9 && parts[8] == "privateKey" || len(parts) == 10 && parts[8] == "metadata" && parts[9] == "privateKey"
+	}
+	return false
 }
 
 func comparisonExcludedTarget(target Format, path string) bool {
@@ -229,6 +257,15 @@ func comparisonKey(target Format, item map[string]any) (string, error) {
 					metadata, _ := key["metadata"].(map[string]any)
 					canonicalSSHValue(metadata, "privateKey")
 				}
+			}
+		}
+	}
+	if target == ProtonPassZIP {
+		if root, ok := projection.(map[string]any); ok {
+			data, _ := root["data"].(map[string]any)
+			if data["type"] == "sshKey" {
+				content, _ := data["content"].(map[string]any)
+				canonicalSSHValue(content, "privateKey")
 			}
 		}
 	}

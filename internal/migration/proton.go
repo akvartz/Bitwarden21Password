@@ -258,6 +258,7 @@ func protonValidateItem(item map[string]any) (string, error) {
 	stringsByKind := map[string][]string{
 		"login":      {"itemUsername", "itemEmail", "password", "totpUri"},
 		"creditCard": {"cardholderName", "number", "verificationNumber", "expirationDate", "pin"},
+		"sshKey":     {"privateKey", "publicKey"},
 		"identity":   {"fullName", "email", "phoneNumber", "firstName", "middleName", "lastName", "birthdate", "gender", "organization", "streetAddress", "zipOrPostalCode", "city", "stateOrProvince", "countryOrRegion", "floor", "county", "socialSecurityNumber", "passportNumber", "licenseNumber", "website", "xHandle", "secondPhoneNumber", "linkedin", "reddit", "facebook", "yahoo", "instagram", "company", "jobTitle", "personalWebsite", "workPhoneNumber", "workEmail"},
 	}
 	for _, key := range stringsByKind[kind] {
@@ -305,6 +306,9 @@ func protonValidateItem(item map[string]any) (string, error) {
 			}
 		}
 	}
+	if kind == "sshKey" && !protonSSHSectionsValid(content["sections"], false) {
+		return "", invalid
+	}
 	for _, key := range []string{"state", "contentFormatVersion", "createTime", "modifyTime", "shareCount"} {
 		if value, present := item[key]; present {
 			if _, ok := protonNumber(value); !ok {
@@ -326,6 +330,8 @@ func protonValidateItem(item map[string]any) (string, error) {
 		return "card", nil
 	case "identity":
 		return "identity", nil
+	case "sshKey":
+		return "ssh_key", nil
 	default:
 		return "unknown", nil
 	}
@@ -337,7 +343,8 @@ func exportProton(items []map[string]any) ([]byte, error) {
 	}
 	values := make([]any, len(items))
 	for i, item := range items {
-		if _, err := protonValidateItem(item); err != nil {
+		kind, err := protonValidateItem(item)
+		if err != nil || (kind == "ssh_key" && !protonSSHOutputValid(item)) {
 			return nil, &SafeError{Code: "output_validation"}
 		}
 		copy := make(map[string]any, len(item)+2)

@@ -22,13 +22,13 @@ Local primary-source research scratch is excluded from Git and build inputs.
 | Provider routes | Six directional Bitwarden/1PUX/Proton profiles; strict snapshots; login/note/card/identity and documented typed fields; intermediary losses disclosed; independent/adversarial review | Actual disposable-vault import and re-export qualification for each claimed profile |
 | Browser sources | Chrome/Chromium, native Firefox and Safari/OTPAuth CSV into all three providers: nine routes; primary schema evidence and independent fixtures | Native browser export and destination import qualification |
 | Auditable fidelity | Every selected leaf/empty container and metadata field receives a disposition; exact credentials/duplicates retained; unsafe unfamiliar records block; omitted attachments/passkeys/vault relationships require exact review | Provider observations of supported values and disclosed losses; no working passkey claim |
-| SSH | Ed25519 Bitwarden↔1PUX; RSA 2048/3072/4096 1PUX→Bitwarden; maintained SSH/x509 parsing, exact ASN member checks and bounded RSA validation; independent/adversarial re-review clean | Native import/agent authentication; reverse RSA metadata token unverified and blocked; Proton SSH blocked |
+| SSH | Ed25519 across all six provider directions; RSA 2048/3072/4096 Bitwarden↔Proton and 1PUX→Bitwarden/Proton; maintained SSH/x509 parsing, exact ASN checks, validated pairs and fingerprints; native custom-section relocation and private representation dispositions | Native import/agent authentication; Bitwarden/Proton RSA→1PUX metadata token unverified and blocked |
 | Archives | Extraction-free ZIP, local/central/index validation, compressed/expanded/entry/depth bounds, unconditional CRC and complete compressed-span consumption; negative/fuzz/race reviews | Native exporter fixtures and provider archive acceptance |
 | Encrypted inputs | Bitwarden password-protected PBKDF2/Argon2id authenticated envelopes; bounded Proton OpenPGP profile; independent cryptography/GnuPG/provider component vectors, tamper tests and two review seats | Native app-created encrypted-export qualification; account-bound/unknown profiles remain rejected |
 | Recovery | age v1.3.2 X25519 writer/reader, authenticated exact whole-original framing, key handling, standalone save/recover and conversion retention; static upstream vector and both official CLI directions for all six formats pass | Other implementation testing is distinct; user verifies saved key/original during provider qualification |
 | Selection/comparison | Intersecting ordinal item/vault/folder/kind selection; multiset destination comparison, ambiguity/unobservable fields; SSH key representations compared semantically; no values/fingerprints in reports | Supplied native destination re-export tests; comparison never certifies import/authentication |
 | Linux output | Native private anchored output, fixed names, no replacement, sync/readback/close, cancellation/fault/concurrency tests; reviewer probes including recovery failure/cancellation pass | Final exact-commit CI/root and packaged runtime checks |
-| macOS/Windows output | Reviewed native candidate ACL/DACL/owner/local-volume boundaries and fault tests; candidate test binaries cross-compile; public writes remain disabled | Native candidate tests plus real second-principal access denial/rejected-volume/junction probes; enable only after evidence, then native public CLI journeys |
+| macOS/Windows output | macOS native amd64/arm64 privacy qualification passed, public pipeline enabled; Windows candidate DACL/owner/local-volume/fault/alternate-principal denial probes pass except standard-user child; Windows public writes remain disabled | Fresh macOS public CLI journeys; diagnose Windows child and qualify both architectures before enablement, then Windows public CLI journeys |
 | CLI | Human/JSON help, safe inventory/plan/review/receipts, explicit one-shot issue acknowledgment, progress, exact hidden/stdin/JSON passwords, recovery/comparison; actual PTY and blocked-stream signal probes pass independent/adversarial review | Final packaged/native end-to-end smoke and usability qualification |
 | Documentation | Full ordinary-user journeys, limits, recovery/selection/comparison and directional matrix; stale merged status corrected; provider procedure explicitly NOT RUN | Synthetic-only kit checks all fifteen routes/591 values; twelve retained protocol/privacy tests pass; final native acceptance and candidate links/evidence pending |
 | Release candidate | Pinned patched Go 1.26.9; six-target no-clobber packager and existing guarded draft workflow; dependency-cache tamper review | Dependency pin/source/cache/environment gates and two review seats pass; clean-commit archives/asset guards and exact-head hosted/native and packaged runtime evidence pending |
@@ -151,3 +151,51 @@ parents receive an explicit protected user/SYSTEM DACL at creation, then an
 independent handle readback. Public Darwin/Windows writing remains disabled.
 The ordinary-user parent recipe is in native-output-journey.md; its Windows
 PowerShell recipe has source review but has not been executed natively.
+
+## Second native run and macOS activation
+
+[CI 38215250163](https://github.com/akvartz/Bitwarden21Password/actions/runs/38215250163)
+at exact `39802b9cfefc4ddc4c92168060150d158bdeb489` passed both Linux native jobs,
+Linux race/root/helper guards, packaging, all six packaged native checks, and
+both macOS native jobs. Both macOS privacy suites passed actual second-principal
+published/retained-partial denial, foreign-owner rejection and APFS/HFS/FAT
+volume probes without skips. Windows VHD cleanup and other privacy probes now
+pass; both standard-user children still fail before a readable phase marker.
+No Windows enablement follows from this run.
+
+macOS public wrappers are now connected to the identical qualified pipeline,
+with native capability assertions and packaged checks expecting true. The
+activation passes independent/adversarial source review, Linux protected-output/
+CLI race tests, two Darwin cross-build/vet checks and ten release guards.
+The next exact-head CI must establish public conversion/recovery journeys;
+the prior candidate-only run does not establish that evidence.
+
+## Proton SSH completion
+
+The pinned Proton native schema and Bitwarden reader independently establish
+the `sshKey` type, raw private/public strings, sections and hidden fingerprint
+relocation. The adapter admits validated Ed25519 and RSA 2048/3072/4096 pairs;
+it preserves exact admitted raw values or discloses a PKCS#8/PKCS#1→OpenSSH
+representation transformation. User section labels never become native key
+ownership metadata. Text/hidden fields relocate; grouping and unfamiliar fields
+remain explicitly unsupported. RSA output to 1PUX remains blocked.
+
+True behavioral RED/GREEN preceded parser/mapping/output-validation changes.
+Focused tests cover all admitted directions, malformed/encrypted/conflicting/
+oversized keys, unknown and duplicate custom fields, exact output validation,
+source ownership and report redaction. Proton semantic SSH comparison is bound
+to its declared item type and source paths, retaining duplicate counts and
+unobservable-original-encoding caveats. The integrated uncached Go suite, full
+race suite and vet pass. Independent and adversarial source/probe reviews are
+recorded separately before integration. Actual native SSH imports and agent
+authentication remain NOT RUN. An additive independent synthetic SSH kit is
+being prepared; the existing default kit still has fifteen routes/591 core
+checks and does not contain SSH fixtures.
+
+Final independent and adversarial reviews pass the stable Proton adapter,
+comparison hooks and macOS public activation. The next Windows probe grants the
+exact temporary account access only to its shared synthetic startup fixtures,
+then requires the real non-elevated process identity and strict private-writer
+checks. Bounded diagnostics add fixed marker reasons and numeric native/exit
+statuses without paths, SIDs, passwords or child stdout/stderr. Separate source
+reviews and Windows cross-build/vet pass; no native success is inferred.

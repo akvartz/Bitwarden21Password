@@ -71,6 +71,9 @@ func protonNumber(value any) (string, bool) {
 }
 
 func mapBitwardenToProton(record providerRecord) (mappedRecord, error) {
+	if record.kind == "ssh_key" {
+		return protonMapBitwardenSSH(record)
+	}
 	m := newProtonMapping(record)
 	var typ string
 	switch record.kind {
@@ -270,6 +273,9 @@ func protonMapBitwardenTimestamp(m *protonMapping, item map[string]any, source, 
 }
 
 func mapProtonToBitwarden(record providerRecord) (mappedRecord, error) {
+	if record.kind == "ssh_key" {
+		return protonMapSSHToBitwarden(record)
+	}
 	m := newProtonMapping(record)
 	var typ string
 	switch record.kind {

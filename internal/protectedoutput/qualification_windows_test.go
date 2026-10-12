@@ -78,26 +78,52 @@ func windowsQualificationHelperProgress(t *testing.T, base string) func(string) 
 	}
 }
 
-func windowsQualificationReadHelperPhase(base string) string {
+func windowsQualificationDiagnosticCode(err error) uint32 {
+	var code syscall.Errno
+	if errors.As(err, &code) {
+		return uint32(code)
+	}
+	return 0
+}
+
+func windowsQualificationReadHelperPhase(base string) (string, string, uint32) {
 	root, err := windowsOpenParent(base)
 	if err != nil {
-		return "process_start"
+		return "process_start", "marker_parent_open", windowsQualificationDiagnosticCode(err)
 	}
 	handle, openErr := windowsChild(root, "helper-phase.txt", false, false, syscall.GENERIC_READ, nil)
 	closeErr := syscall.CloseHandle(root)
 	if openErr != nil {
-		return "process_start"
+		if _, err := os.Lstat(filepath.Join(base, "helper-phase.txt")); os.IsNotExist(err) {
+			return "process_start", "marker_missing", windowsQualificationDiagnosticCode(err)
+		}
+		return "process_start", "marker_open", windowsQualificationDiagnosticCode(openErr)
 	}
 	file := os.NewFile(uintptr(handle), "native-helper-phase")
-	defer file.Close()
-	if closeErr != nil || !windowsDiskObject(handle, false) {
-		return "process_start"
+	if closeErr != nil {
+		file.Close()
+		return "process_start", "marker_parent_close", windowsQualificationDiagnosticCode(closeErr)
+	}
+	if !windowsDiskObject(handle, false) {
+		file.Close()
+		return "process_start", "marker_object", 0
 	}
 	value, err := io.ReadAll(io.LimitReader(file, 33))
-	if err != nil || len(value) > 32 {
-		return "process_start"
+	closeErr = file.Close()
+	if err != nil {
+		return "process_start", "marker_read", windowsQualificationDiagnosticCode(err)
 	}
-	return windowsQualificationHelperPhase(string(value))
+	if closeErr != nil {
+		return "process_start", "marker_close", windowsQualificationDiagnosticCode(closeErr)
+	}
+	if len(value) > 32 {
+		return "process_start", "marker_limit", 0
+	}
+	phase := windowsQualificationHelperPhase(string(value))
+	if phase == "process_start" {
+		return phase, "marker_value", 0
+	}
+	return phase, "marker_ok", 0
 }
 
 // The randomly generated temporary account password goes only to native API
@@ -161,6 +187,11 @@ func windowsQualificationAccount(t *testing.T) windowsQualificationUser {
 
 func windowsQualificationPublicACL(t *testing.T, path string, directory bool) {
 	t.Helper()
+	windowsQualificationSharedACL(t, path, directory, "BU")
+}
+
+func windowsQualificationSharedACL(t *testing.T, path string, directory bool, principal string) {
+	t.Helper()
 	user, err := windowsCurrentUser()
 	if err != nil {
 		t.Fatal("native fixture identity failed")
@@ -172,7 +203,7 @@ func windowsQualificationPublicACL(t *testing.T, path string, directory bool) {
 	}
 	// Only synthetic controls and the copied test executable are shared. The
 	// candidate's parent/job/files retain its exact protected private DACL.
-	descriptor, err := windows.SecurityDescriptorFromString("O:" + sid + "D:P(A;" + inheritance + ";FA;;;" + sid + ")(A;" + inheritance + ";FA;;;SY)(A;" + inheritance + ";FA;;;BU)")
+	descriptor, err := windows.SecurityDescriptorFromString("O:" + sid + "D:P(A;" + inheritance + ";FA;;;" + sid + ")(A;" + inheritance + ";FA;;;SY)(A;" + inheritance + ";FA;;;" + principal + ")")
 	if err != nil {
 		t.Fatal("native shared-fixture descriptor failed")
 	}
@@ -335,6 +366,9 @@ func TestWindowsNativeQualificationStandardUserWriter(t *testing.T) {
 	windowsQualification(t)
 	user := windowsQualificationAccount(t)
 	base := windowsQualificationBase(t)
+	// This startup fixture grants the exact temporary account directly;
+	// its accessibility does not depend on local alias/group membership.
+	windowsQualificationSharedACL(t, base, true, user.sid)
 	admin, err := windowsCurrentUser()
 	if err != nil {
 		t.Fatal("native foreign-owner fixture identity failed")
@@ -376,7 +410,7 @@ func TestWindowsNativeQualificationStandardUserWriter(t *testing.T) {
 	if copyErr != nil || sourceErr != nil || destinationErr != nil {
 		t.Fatal("native helper executable copy failed")
 	}
-	windowsQualificationPublicACL(t, helper, false)
+	windowsQualificationSharedACL(t, helper, false, user.sid)
 	application, _ := syscall.UTF16FromString(helper)
 	command, _ := syscall.UTF16FromString(`"` + helper + `" -test.run=^TestWindowsPrivacyQualificationHelper$`)
 	domain, _ := syscall.UTF16FromString(".")
@@ -408,12 +442,12 @@ func TestWindowsNativeQualificationStandardUserWriter(t *testing.T) {
 	if windows.GetExitCodeProcess(process.Process, &code) != nil {
 		t.Fatal("native standard-user helper exit observation failed")
 	}
-	phase := windowsQualificationReadHelperPhase(base)
+	phase, marker, markerCode := windowsQualificationReadHelperPhase(base)
 	if code != 0 || phase != "complete" {
 		if code == 0xc0000142 {
 			phase = "process_initialization"
 		}
-		t.Fatalf("native standard-user helper failed at fixed phase %s", phase)
+		t.Fatalf("native standard-user helper failed at fixed phase %s, fixed marker %s, exit status 0x%08x, marker status %d", phase, marker, code, markerCode)
 	}
 	// The standard-user child leaves one empty fixture owned by that user,
 	// with a protected DACL granting only this process's user and SYSTEM.

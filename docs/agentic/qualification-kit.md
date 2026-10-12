@@ -11,10 +11,13 @@ preparation changes provider qualification from **NOT RUN**.
 
 Use an existing Python 3 installation (standard library only) and the trusted,
 reviewed Linux candidate. The script installs nothing, builds nothing, uses no
-network and accesses no provider account. Current public conversion is
-Linux-only; a successful synthetic artifact can be imported manually in a
+network and accesses no provider account. This helper's preparation is
+Linux-only. The candidate enables macOS output after native privacy checks,
+with fresh public CLI journey checks still pending; the helper does not provide
+that evidence. A successful synthetic artifact can be imported manually in a
 destination application on another platform without qualifying that platform's
-writer.
+writer. See the [native output journey](native-output-journey.md) for ordinary
+private-directory preparation.
 
 Build with the existing provisioned toolchain/module cache, or use the intended
 packaged binary. From the repository root:
@@ -164,13 +167,19 @@ source/profile against each claimed destination.
   shell history or evidence. Wrong password/tampered input must not produce a
   successful artifact. Record native exporter versions and interoperability
   separately; Proton attachment members remain plaintext in its encrypted ZIP.
-- **SSH:** create Ed25519 keys in a disposable native source and test Bitwarden
-  ↔ 1PUX imports; test RSA 2048/3072/4096-bit 1PUX → Bitwarden. Reverse RSA and
-  Proton SSH routes remain unsupported. Check key/public/fingerprint consistency
-  locally, then perform any native SSH authentication only against a disposable
-  server you own using its native client/SSH integration. Record authentication
-  separately from accepting an item. Do not share private keys or fingerprints
-  derived from source keys in evidence.
+- **SSH:** the prepared fifteen-route kit has no SSH records. Create Ed25519
+  keys in a disposable native source and test all provider directions. Test RSA
+  2048/3072/4096-bit Bitwarden ↔ Proton and 1PUX → Bitwarden/Proton. Reverse RSA
+  into 1PUX remains blocked on its unverified writer `metadata.keyType` literal.
+  Check exact retained strings, disclosed PKCS#8/PKCS#1 → OpenSSH transformations
+  and private/public/fingerprint consistency locally. Check exact hidden Proton
+  fingerprint relocation, text/hidden section-field relocation and grouping or
+  unsupported section-type loss without interpreting arbitrary labels as native
+  fingerprint metadata. Native SSH authentication must run separately against
+  a disposable server you own with its native client/integration. Do not share
+  private/public key text or source-derived fingerprints in evidence. Recovery
+  of the whole source preserves omitted sections/representations; it does not
+  migrate them or qualify authentication.
 - **Coverage and loss:** add absent/null/empty values, favorites/status/times,
   container selection, unknown fields/types, large fields/batches, attachments,
   icons and passkey payloads from the full checklist. Unsupported selected

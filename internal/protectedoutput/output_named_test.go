@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/akvartz/Bitwarden21Password/internal/testsupport"
 )
 
 func TestWriteNamedRejectsUntrustedNamesBeforeFilesystemEffects(t *testing.T) {
@@ -26,10 +28,7 @@ func TestWriteNamedExactAllowedFilename(t *testing.T) {
 	}
 	for _, name := range []string{"bitwarden.json", "onepassword.1pux", "proton-pass.zip", "recovery.age", "recovery-key.txt", "source.csv", "source.json", "source.1pux", "source.zip"} {
 		t.Run(name, func(t *testing.T) {
-			parent := t.TempDir()
-			if err := os.Chmod(parent, 0700); err != nil {
-				t.Fatal(err)
-			}
+			parent := testsupport.PrivateParent(t)
 			payload := []byte("synthetic exact \r\n世界")
 			result, err := WriteNamed(context.Background(), parent, name, payload)
 			if err != nil {
@@ -39,6 +38,8 @@ func TestWriteNamedExactAllowedFilename(t *testing.T) {
 				t.Fatal("receipt filename does not identify selected export")
 			}
 			job := filepath.Join(parent, result.JobDirectory)
+			testsupport.AssertPrivate(t, job, true)
+			testsupport.AssertPrivate(t, filepath.Join(job, name), false)
 			entries, err := os.ReadDir(job)
 			if err != nil || len(entries) != 1 || entries[0].Name() != name {
 				t.Fatal("job did not publish exactly the selected filename")

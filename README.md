@@ -6,8 +6,10 @@ an optional encrypted recovery copy, and compares a supplied destination
 re-export. Runtime processing needs no network, telemetry or provider login.
 
 **The candidate is experimental. Actual provider-import qualification is not
-run, and macOS/Windows public output commands remain disabled pending native
-qualification. It is not yet a qualified or published 1.0.0 release.** Use
+run, and Windows public output remains disabled pending native qualification.
+Linux and macOS protected output are enabled in the candidate; public macOS
+CLI journeys for the newly enabled build still need fresh CI. It is not yet a
+qualified or published 1.0.0 release.** Use
 synthetic data to evaluate it. The [acceptance ledger](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/release-1.0-progress.md)
 records the remaining 1.0 gates; the [release runbook](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/releases.md) separates
 candidate validation from publication.
@@ -82,15 +84,34 @@ still requires destination qualification. Unfamiliar browser columns do not
 acquire native semantics merely because their label resembles another format.
 
 Supported rich item mappings cover logins, secure notes, cards and identities.
-Experimental SSH mappings support Ed25519 between Bitwarden and 1PUX in both
-directions, and RSA 2048/3072/4096-bit keys from 1PUX to Bitwarden. Bitwarden
-RSA → 1PUX remains blocked because the destination's `metadata.keyType` literal
-has not been independently verified. These mappings validate key material,
-public keys and fingerprints and disclose private-key representation changes;
+Experimental SSH support is direction-specific:
+
+| SSH direction | Admitted key profiles |
+| --- | --- |
+| Bitwarden → 1PUX | Ed25519 |
+| 1PUX → Bitwarden | Ed25519; RSA 2048/3072/4096-bit |
+| Bitwarden ↔ Proton | Ed25519; RSA 2048/3072/4096-bit in both directions |
+| 1PUX → Proton | Ed25519; RSA 2048/3072/4096-bit through the Bitwarden mapping |
+| Proton → 1PUX | Ed25519 through the Bitwarden mapping |
+
+Bitwarden/Proton RSA → 1PUX remains blocked because the destination's
+`metadata.keyType` literal has not been independently verified. Individual
+encrypted SSH keys and unsupported key types/representations are rejected.
+Mappings validate private/public key consistency and required fingerprints;
 no native SSH import or authentication has been qualified.
 
-SSH routes involving Proton, Proton aliases and unknown item types remain
-unsupported. Selecting an unsupported record blocks conversion. Exclude it
+Bitwarden → Proton preserves admitted raw private/public strings and relocates
+the exact source fingerprint into a native hidden section field. Proton →
+Bitwarden preserves an admitted OpenSSH private representation or transforms
+PKCS#8/PKCS#1 into OpenSSH, then derives the required SHA256 fingerprint from
+the validated key pair. Original transformed representations are unobservable
+in the destination. Text/hidden Proton SSH section values relocate to exact
+Bitwarden custom fields; section grouping and unsupported field types require
+explicit loss review. A section label resembling a fingerprint does not make
+its value the native key fingerprint.
+
+Proton aliases and unknown item types remain unsupported. Selecting an
+unsupported record blocks conversion. Exclude it
 deliberately or use `recovery-save` to retain the whole original for another
 migration path. The converter never changes an unknown type into a login or
 merges duplicate records.
@@ -109,7 +130,10 @@ passkey or SSH authentication claim is made.
 
 Export from your source application using a supported profile. Keep that
 original file until you have independently checked the destination. These
-examples use synthetic files and an existing private Linux output parent:
+examples use synthetic files and a private Linux/macOS output parent. On macOS,
+prepare a local APFS/HFS+ directory with ownership enabled and no extended ACL
+using the [native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md)
+before conversion:
 
 ```sh
 ./pwmigrate-go inspect --input "synthetic bitwarden.json" --from bitwarden-json
@@ -203,7 +227,7 @@ archive attachments and metadata, in a binary age v1 file. If the original was
 already an encrypted provider export, recovery retains those encrypted bytes;
 its original export password is still needed after restoration.
 
-Create a recovery key in a private existing Linux directory, then use the
+Create a recovery key in a private existing Linux/macOS directory, then use the
 generated `recovery-key.txt` path shown by its receipt:
 
 ```sh
@@ -279,14 +303,17 @@ or SIGTERM requests cancellation of output commands. Expensive KDF/library work
 can finish before cancellation is observed. Read-only commands use normal
 operating-system signal termination.
 
-On Linux, the existing output parent must be owned by the effective user and
+On Linux/macOS, the existing output parent must be owned by the effective user and
 not writable by group or others. Each artifact gets a new private `0700` job
 directory and an exclusively created `0600` partial file. Publication is
 no-clobber; existing files are never replaced. Writes, readback, sync and close
 are checked. Use a suitable local filesystem; the writer needs hard-link and
-sync support. Public macOS/Windows writers fail closed with `output_platform`
-until native ACL/DACL and volume checks qualify them. Authored platform code
-and cross-compilation do not constitute that qualification.
+sync support. macOS additionally requires local writable APFS/HFS+, ownership
+enabled and no extended ACL on the parent or private artifacts. Public Windows
+output fails closed with `output_platform` pending DACL and volume qualification.
+See the [native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md)
+for ordinary-user directory setup. Authored platform code and cross-compilation
+do not constitute native qualification.
 
 A job containing an export and recovery is not one atomic filesystem
 transaction. Failure or interruption can leave private partial artifacts or a
@@ -304,7 +331,8 @@ or source deletion occurs.
 | `1` | I/O, local validation or cancellation failure |
 
 Errors use fixed safe codes. For `output_parent`, check the existing directory's
-ownership/permissions; for `output_platform`, use supported Linux output; for
+ownership/permissions and macOS ACL/volume policy; for `output_platform`, use
+supported Linux/macOS output; for
 `password_required`, use a terminal or explicit stdin framing; for
 `authentication_failed`, check the local password and original export without
 posting them. Unsupported formats, encryption profiles or records require a
@@ -356,12 +384,16 @@ The earlier checklist describes the baseline evidence; use the current
 | Platform | Inspect, plan, compare, formats, version | Public convert/recovery output |
 | --- | --- | --- |
 | Linux amd64/arm64 | Built for both architectures | Experimental; record native runtime evidence by architecture |
-| macOS amd64/arm64 | Built for both architectures | Disabled pending native ACL/volume qualification |
+| macOS amd64/arm64 | Built for both architectures | Enabled after native privacy qualification; new public CLI journey checks pending fresh CI |
 | Windows amd64/arm64 | Built for both architectures | Disabled pending native DACL/volume qualification |
 
 Local tests, native CI, six-architecture packaging and provider imports are
 separate evidence. Cross-compilation proves a build, not native behavior;
 self-roundtrips prove neither provider acceptance nor authentication.
+macOS privacy qualification passed on both architectures at public source
+commit `39802b9` in [run 38215250163](https://github.com/akvartz/Bitwarden21Password/actions/runs/38215250163).
+That evidence predates public writer enablement; fresh checks of the enabled
+CLI remain a separate gate.
 
 ## Legacy and license
 

@@ -11,22 +11,21 @@ import (
 	"unsafe"
 )
 
-// Supported remains false until native ACL, volume, and filesystem-failure
-// tests qualify this implementation. Cross-compilation never enables output.
-func Supported() bool { return false }
+// Supported reports whether protected output is enabled on this platform.
+// Native amd64 and arm64 qualification covers ACLs, ownership and volumes.
+func Supported() bool { return true }
 
-func write(context.Context, string, []byte) (Result, error) {
-	return Result{}, &Error{Code: "output_platform"}
+func write(ctx context.Context, parent string, payload []byte) (Result, error) {
+	return writeNamed(ctx, parent, fileName, payload)
 }
 
-func writeNamed(context.Context, string, string, []byte) (Result, error) {
-	return Result{}, &Error{Code: "output_platform"}
+func writeNamed(ctx context.Context, parent, name string, payload []byte) (Result, error) {
+	return writeNamedWithOps(ctx, parent, name, payload, filesystemOperations())
 }
 
-// writeDarwinCandidate is reachable only by same-package native tests. It
-// shares Linux's anchored, exclusive, checked, no-clobber write pipeline.
+// writeDarwinCandidate keeps native qualification on the same public pipeline.
 func writeDarwinCandidate(ctx context.Context, parent string, payload []byte) (Result, error) {
-	return writeNamedWithOps(ctx, parent, fileName, payload, filesystemOperations())
+	return write(ctx, parent, payload)
 }
 
 // nativePrivacy checks opened handles, never the current spelling of a path.
