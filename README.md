@@ -10,8 +10,8 @@ run. Protected output is enabled on Linux, macOS and Windows after platform
 qualification. Native privacy and source-built public CLI journeys passed on
 all six targets; packaged binaries passed native version/help/formats smoke
 checks. It is not yet a qualified or published 1.0.0 release.** Use
-synthetic data to evaluate it. The [acceptance ledger](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/release-1.0-progress.md)
-records the remaining 1.0 gates; the [release runbook](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/releases.md) separates
+synthetic data to evaluate it. The [acceptance ledger](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/release-1.0-progress.md)
+records the remaining 1.0 gates; the [release runbook](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/releases.md) separates
 candidate validation from publication.
 
 ## Install or build
@@ -40,8 +40,10 @@ In Windows PowerShell use `.\pwmigrate-go.exe`. Archives also contain this
 README, the MIT license and `BUILD-INFO.json`. Version output identifies the
 source commit, Go version, operating system and architecture; unstamped builds
 report `dev` and `unknown`. No installer, GUI or file-drop launcher is included.
-Repository documentation links follow the `feat/1.0-release` candidate branch;
-the archive includes the README, project license and dependency notices alongside its binary/metadata.
+Repository documentation links use the reviewed source snapshot
+`8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e`; exact binary provenance is in
+`BUILD-INFO.json`. The archive includes the README, project license and dependency
+notices alongside its binary and metadata.
 Most terminals insert a path when you drag a file into the command line. Check
 the inserted quoting, and quote paths containing spaces.
 
@@ -138,7 +140,7 @@ examples use synthetic files and a new private Linux/macOS output parent at
 `$HOME/pwmigrate-output`. On Linux, create it with
 `mkdir -m 700 "$HOME/pwmigrate-output"`. On macOS, prepare that directory on a
 local APFS/HFS+ volume with ownership enabled and no extended ACL using the
-[native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md).
+[native output journey](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/native-output-journey.md).
 Both procedures refuse an existing directory. Then use the prepared parent:
 
 ```sh
@@ -152,7 +154,7 @@ task_output_parent="$HOME/pwmigrate-output"
 
 On Windows, prepare a new local fixed-NTFS directory with the protected
 current-user/LocalSystem DACL in the
-[native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md).
+[native output journey](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/native-output-journey.md).
 Use the recipe's `$outputParent` variable in that PowerShell session:
 
 ```powershell
@@ -229,8 +231,8 @@ remove empty URIs, and reject some blank-name/password batches. Count and
 encrypted-field limits depend on the application/server version. Proton's
 reviewed importer does not reconstruct favorites from `pinned`; generated
 favorite bytes do not prove favorite migration. See
-[provider evidence](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/provider-format-evidence.md) and the
-[destination qualification procedure](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/provider-qualification.md).
+[provider evidence](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/provider-format-evidence.md) and the
+[destination qualification procedure](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/provider-qualification.md).
 
 ## Encrypted input passwords
 
@@ -257,7 +259,7 @@ unauthenticated or unfamiliar cipher envelopes are rejected. PBKDF2 permits
 5,000–2,000,000 iterations. Argon2id permits 2–10 iterations, 16–256 MiB,
 parallelism 1–16 and at most 768 MiB-passes. Valid provider exports outside
 these resource bounds are rejected; do not change an account's KDF just to pass
-this tool. [Crypto profile and evidence](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/internal/providercrypto/README.md)
+this tool. [Crypto profile and evidence](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/internal/providercrypto/README.md)
 describe the limits and independent vectors.
 
 Proton accepts a strict password-based OpenPGP profile: one v4 AES session-key
@@ -341,7 +343,7 @@ job basename from its receipt:
 file. The receipt identifies its new directory and `source.csv`, `source.json`,
 `source.1pux` or `source.zip`. Restoration reproduces original bytes, not an
 importable destination conversion. The restored original may itself contain
-plaintext. [Recovery framing and evidence](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/internal/recovery/README.md)
+plaintext. [Recovery framing and evidence](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/internal/recovery/README.md)
 record the package limits, maintained age implementation and interoperability
 tests. The acceptance ledger separately records both official age CLI
 directions for all six source formats; this does not qualify native provider
@@ -365,7 +367,7 @@ was produced and cannot certify account contents or working credentials.
 Encrypted source/destination inputs prompt in that order; stdin mode needs a
 separate password line for each encrypted input. Check exact case/field
 expectations independently using the
-[qualification checklist](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/provider-qualification.md).
+[qualification checklist](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/provider-qualification.md).
 
 ## Progress, failures and output protection
 
@@ -387,7 +389,7 @@ a local fixed NTFS volume, no reparse points in the path, current-user ownership
 and a protected DACL with exact full-control current-user/LocalSystem rules and
 no inheritance flags. Each Windows artifact receives its own private descriptor;
 Unix-style `0700`/`0600` arguments do not establish Windows permissions.
-See the [native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md)
+See the [native output journey](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/native-output-journey.md)
 for ordinary-user directory setup. Authored platform code and cross-compilation
 do not constitute native qualification.
 
@@ -450,14 +452,14 @@ Tests use synthetic data only. The migration engine is in `internal/migration`,
 bounded ZIP handling in `internal/safearchive`, crypto in
 `internal/providercrypto` and `internal/recovery`, protected writes in
 `internal/protectedoutput`, and commands in `internal/cli`. See the
-[design](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/superpowers/specs/2026-10-11-go-migration-design.md),
-[acceptance ledger](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/release-1.0-progress.md),
-[all-destination qualification checklist](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/provider-qualification.md)
-and earlier [Chrome-to-Bitwarden checklist](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/bitwarden-import-qualification.md).
+[design](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/superpowers/specs/2026-10-11-go-migration-design.md),
+[acceptance ledger](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/release-1.0-progress.md),
+[all-destination qualification checklist](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/provider-qualification.md)
+and earlier [Chrome-to-Bitwarden checklist](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/bitwarden-import-qualification.md).
 The earlier checklist describes the baseline evidence; use the current
 `compare` command for supplied re-exports.
 
-The [qualification kit](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/qualification-kit.md)
+The [qualification kit](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/docs/agentic/qualification-kit.md)
 prepares fifteen default routes with 591 independent local field checks. Its
 optional Ed25519 SSH companion adds six provider directions with 144 local
 key/field checks. Both helpers prepare only independent synthetic fixtures;
@@ -492,7 +494,7 @@ provider import or authentication follows from these platform results.
 
 ## Legacy and license
 
-The archived [Rust implementation](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/legacy/rust/README.md) retains its historical
+The archived [Rust implementation](https://github.com/akvartz/Bitwarden21Password/blob/8a3f84ff91fa3dc22b8e11301405dbea3bb81d5e/legacy/rust/README.md) retains its historical
 adapters and fixtures. Their format list does not describe Go support. Known
 legacy concerns include trimming credentials, secret-bearing errors, incomplete
 mappings, ambiguous notes markers and unprotected output. Rust is neither a
