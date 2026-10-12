@@ -284,6 +284,70 @@ func windowsQualificationPrivateParent(t *testing.T, base, name string) string {
 	return windowsQualificationPrivateParentProgress(t, base, name, nil)
 }
 
+// Security mutation fixtures request their own narrow mutation right. The
+// production parent handle deliberately lacks WRITE_DAC/WRITE_OWNER/DELETE.
+func windowsQualificationFixtureHandle(path string, mutation uint32) (syscall.Handle, error) {
+	root, err := windowsOpenParent(filepath.Dir(path))
+	if err != nil {
+		return syscall.InvalidHandle, err
+	}
+	handle, openErr := windowsChild(root, filepath.Base(path), true, false, 0x001200a9|mutation, nil)
+	closeErr := syscall.CloseHandle(root)
+	if openErr != nil {
+		return syscall.InvalidHandle, openErr
+	}
+	if closeErr != nil || !windowsDiskObject(handle, true) || !windowsSupportedVolume(handle) {
+		syscall.CloseHandle(handle)
+		if closeErr != nil {
+			return syscall.InvalidHandle, closeErr
+		}
+		return syscall.InvalidHandle, syscall.EINVAL
+	}
+	return handle, nil
+}
+
+func TestWindowsCandidateCurrentDirectoryIsValidParent(t *testing.T) {
+	parent := windowsPrivateParent(t)
+	t.Chdir(parent)
+	// SetCurrentDirectory retains a handle without FILE_SHARE_DELETE.
+	// Preserve this actual old-access failure as the regression premise.
+	name, _ := syscall.UTF16PtrFromString(parent)
+	old, err := syscall.CreateFile(name, windowsAllAccess, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE,
+		nil, syscall.OPEN_EXISTING, syscall.FILE_FLAG_BACKUP_SEMANTICS|syscall.FILE_FLAG_OPEN_REPARSE_POINT, 0)
+	if err == nil {
+		syscall.CloseHandle(old)
+		t.Fatal("native current-directory old-access sharing premise was not established")
+	}
+	if !errors.Is(err, windows.ERROR_SHARING_VIOLATION) {
+		t.Fatal("native current-directory old-access failure differed")
+	}
+	result, err := writeWindowsCandidate(context.Background(), parent, []byte("synthetic current-directory output"))
+	if err != nil {
+		t.Fatal("native current-directory private output failed")
+	}
+	got, err := os.ReadFile(filepath.Join(parent, result.JobDirectory, result.FileName))
+	if err != nil || !bytes.Equal(got, []byte("synthetic current-directory output")) {
+		t.Fatal("native current-directory output bytes changed")
+	}
+	user, err := windowsCurrentUser()
+	if err != nil {
+		t.Fatal("native current-directory identity observation failed")
+	}
+	for _, entry := range []struct {
+		path string
+		dir  bool
+	}{{parent, true}, {filepath.Join(parent, result.JobDirectory), true}, {filepath.Join(parent, result.JobDirectory, result.FileName), false}} {
+		file, err := os.Open(entry.path)
+		if err != nil {
+			t.Fatal("native current-directory artifact observation failed")
+		}
+		private := windowsPrivateHandle(syscall.Handle(file.Fd()), user, entry.dir)
+		if file.Close() != nil || !private {
+			t.Fatal("native current-directory artifact privacy changed")
+		}
+	}
+}
+
 func windowsQualificationPrivateParentProgress(t *testing.T, base, name string, progress func(string)) string {
 	t.Helper()
 	stage := func(phase string) {
@@ -416,7 +480,12 @@ func windowsQualificationParentProbe(path string) (string, uint32) {
 	if err != nil {
 		return "private_parent_open", windowsQualificationDiagnosticCode(err)
 	}
-	root, err := syscall.CreateFile(name, 0x001200a9, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE,
+	components := strings.Split(strings.TrimPrefix(absolute[len(volume):], `\`), `\`)
+	access := uint32(0x001200a9)
+	if len(components) == 1 && components[0] == "" {
+		access = windowsParentAccess
+	}
+	root, err := syscall.CreateFile(name, access, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE,
 		nil, syscall.OPEN_EXISTING, syscall.FILE_FLAG_BACKUP_SEMANTICS|syscall.FILE_FLAG_OPEN_REPARSE_POINT, 0)
 	if err != nil {
 		return "private_parent_drive_open", windowsQualificationDiagnosticCode(err)
@@ -425,11 +494,14 @@ func windowsQualificationParentProbe(path string) (string, uint32) {
 		syscall.CloseHandle(root)
 		return "private_parent_drive_policy", 0
 	}
-	components := strings.Split(strings.TrimPrefix(absolute[len(volume):], `\`), `\`)
+	if len(components) == 1 && components[0] == "" {
+		closeErr := syscall.CloseHandle(root)
+		return "private_parent_open", windowsQualificationDiagnosticCode(closeErr)
+	}
 	for index, component := range components {
 		phase, policy, access := "private_parent_ancestor", "private_parent_ancestor_policy", uint32(0x001200a9)
 		if index == len(components)-1 {
-			phase, policy, access = "private_parent_base", "private_parent_base_policy", windowsAllAccess
+			phase, policy, access = "private_parent_base", "private_parent_base_policy", windowsParentAccess
 		}
 		next, status := windowsQualificationProbeChild(root, component, access)
 		closeErr := syscall.CloseHandle(root)
@@ -583,7 +655,7 @@ func TestWindowsNativeQualificationStandardUserWriter(t *testing.T) {
 		if _, err := os.Stat(foreign); os.IsNotExist(err) {
 			return
 		}
-		handle, err := windowsOpenParent(foreign)
+		handle, err := windowsQualificationFixtureHandle(foreign, windows.WRITE_OWNER)
 		if err != nil {
 			t.Error("native owned-parent owner restoration open failed")
 			return
@@ -738,7 +810,7 @@ func TestWindowsPrivacyQualificationHelper(t *testing.T) {
 		}
 	})
 	progress("foreign_dacl")
-	handle, err := windowsOpenParent(foreign)
+	handle, err := windowsQualificationFixtureHandle(foreign, windows.WRITE_DAC)
 	if err != nil {
 		t.Fatal("native foreign-owner DACL fixture open failed")
 	}

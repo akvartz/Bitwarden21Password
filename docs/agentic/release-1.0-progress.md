@@ -28,9 +28,9 @@ Local primary-source research scratch is excluded from Git and build inputs.
 | Recovery | age v1.3.2 X25519 writer/reader, authenticated exact whole-original framing, key handling, standalone save/recover and conversion retention; static upstream vector and both official CLI directions for all six formats pass | Other implementation testing is distinct; user verifies saved key/original during provider qualification |
 | Selection/comparison | Intersecting ordinal item/vault/folder/kind selection; multiset destination comparison, ambiguity/unobservable fields; SSH key representations compared semantically; no values/fingerprints in reports | Supplied native destination re-export tests; comparison never certifies import/authentication |
 | Linux output | Native private anchored output, fixed names, no replacement, sync/readback/close, cancellation/fault/concurrency tests; reviewer probes including recovery failure/cancellation pass | Final exact-commit CI/root and packaged runtime checks |
-| macOS/Windows output | macOS native amd64/arm64 privacy qualification passed, public pipeline enabled; Windows candidate DACL/owner/local-volume/fault/alternate-principal denial probes pass except standard-user child; Windows public writes remain disabled | Fresh macOS public CLI journeys; diagnose Windows child and qualify both architectures before enablement, then Windows public CLI journeys |
+| macOS/Windows output | macOS native amd64/arm64 privacy and public conversion/recovery journeys passed; Windows candidate DACL/owner/local-volume/fault/alternate-principal denial probes pass except standard-user child; Windows public writes remain disabled | Qualify the Windows current-directory fix on both architectures before enablement, then native Windows public CLI journeys |
 | CLI | Human/JSON help, safe inventory/plan/review/receipts, explicit one-shot issue acknowledgment, progress, exact hidden/stdin/JSON passwords, recovery/comparison; actual PTY and blocked-stream signal probes pass independent/adversarial review | Final packaged/native end-to-end smoke and usability qualification |
-| Documentation | Full ordinary-user journeys, limits, recovery/selection/comparison and directional matrix; stale merged status corrected; provider procedure explicitly NOT RUN | Synthetic-only kit checks all fifteen routes/591 values; twelve retained protocol/privacy tests pass; final native acceptance and candidate links/evidence pending |
+| Documentation | Full ordinary-user journeys, limits, recovery/selection/comparison and directional matrix; stale merged status corrected; provider procedure explicitly NOT RUN; default kit fifteen routes/591 checks and additive SSH companion six routes/144 checks | Default twelve and companion fourteen regressions pass; final native acceptance and immutable candidate links/evidence pending |
 | Release candidate | Pinned patched Go 1.26.9; six-target no-clobber packager and existing guarded draft workflow; dependency-cache tamper review | Dependency pin/source/cache/environment gates and two review seats pass; clean-commit archives/asset guards and exact-head hosted/native and packaged runtime evidence pending |
 | Stable promotion | Runbook defines deliberate v1.0.0 build/promotion; no tag/release created | All qualification gates; explicit signing/notarization/provenance policy; user-owned merge/tag/draft/promotion |
 
@@ -247,3 +247,24 @@ CI runs the companion guards alongside existing helpers. Every manifest still
 states source-app export, provider import and SSH authentication NOT RUN.
 The companion prepares synthetic files on Linux; its artifacts can be imported
 manually on any claimed native provider client during user-controlled testing.
+
+## Windows current-directory sharing defect
+
+[CI 38219962235](https://github.com/akvartz/Bitwarden21Password/actions/runs/38219962235)
+at `fcedda84f070bcae8fa38047b9547a34d30041f3` observed the same precise failure
+on Windows amd64 and arm64: `private_parent_base`, NTSTATUS `0xc0000043`
+(sharing violation), with actual BUILTIN Users membership enabled. The child
+was using the fixture base as its current directory. Windows retains a handle
+there without delete sharing; the existing-parent opener unnecessarily requested
+DELETE through ALL_ACCESS. This is a writer-access defect, not a missing group.
+
+The correction opens existing parents with read/traverse/security/volume and
+FILE_ADD_SUBDIRECTORY rights (`0x001200ad`), including a final drive root.
+Private owner/DACL/volume/reparse checks still precede writing, and new job/file
+handles retain publication rights. Test-only owner/DACL mutation callers now
+request their exact rights through an anchored fixture helper. The current-
+directory regression first requires the actual old-access sharing failure,
+then checks exact bytes and parent/job/file privacy. The standard-user child
+keeps its original current directory. Both Windows test cross-builds and vet
+pass; separate independent and adversarial production-diff reviews pass. Public Windows
+output stays false until the next native qualification passes on both targets.

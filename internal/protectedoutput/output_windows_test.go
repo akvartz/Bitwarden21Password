@@ -133,7 +133,7 @@ func TestWindowsCandidateRejectsBroadDACLBeforePayload(t *testing.T) {
 			ops := windowsNamedOps()
 			want := "output_create"
 			if phase == "parent" {
-				handle, err := windowsOpenParent(parent)
+				handle, err := windowsQualificationFixtureHandle(parent, 0x40000) // WRITE_DAC, fixture only.
 				if err != nil {
 					t.Fatal(err)
 				}

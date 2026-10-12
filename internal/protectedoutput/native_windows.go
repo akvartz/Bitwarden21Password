@@ -23,7 +23,13 @@ var (
 	getVolumeInfo     = windowsKernel.NewProc("GetVolumeInformationByHandleW")
 )
 
-const windowsAllAccess = 0x001f01ff
+const (
+	windowsAllAccess = 0x001f01ff
+	// Existing parents are inspected and receive a new child directory.
+	// Requesting DELETE would conflict with an ordinary current-directory
+	// handle even though publication never renames or deletes the parent.
+	windowsParentAccess = 0x001200ad // read/traverse, SYNCHRONIZE, FILE_ADD_SUBDIRECTORY.
+)
 
 type windowsUnicodeString struct {
 	Length        uint16
@@ -91,7 +97,12 @@ func windowsOpenParent(path string) (syscall.Handle, error) {
 	if driveType != 3 { // DRIVE_FIXED; removable and network drives fail closed.
 		return syscall.InvalidHandle, syscall.EINVAL
 	}
-	root, err := syscall.CreateFile(rootName, 0x001200a9,
+	components := strings.Split(strings.TrimPrefix(absolute[len(volume):], `\`), `\`)
+	rootAccess := uint32(0x001200a9)
+	if len(components) == 1 && components[0] == "" {
+		rootAccess = windowsParentAccess
+	}
+	root, err := syscall.CreateFile(rootName, rootAccess,
 		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE,
 		nil, syscall.OPEN_EXISTING,
 		syscall.FILE_FLAG_BACKUP_SEMANTICS|syscall.FILE_FLAG_OPEN_REPARSE_POINT, 0)
@@ -102,14 +113,13 @@ func windowsOpenParent(path string) (syscall.Handle, error) {
 		syscall.CloseHandle(root)
 		return syscall.InvalidHandle, syscall.EINVAL
 	}
-	components := strings.Split(strings.TrimPrefix(absolute[len(volume):], `\`), `\`)
 	if len(components) == 1 && components[0] == "" {
 		return root, nil
 	}
 	for i, component := range components {
 		access := uint32(0x001200a9) // READ_CONTROL, SYNCHRONIZE, read/traverse.
 		if i == len(components)-1 {
-			access = windowsAllAccess
+			access = windowsParentAccess
 		}
 		next, openErr := windowsChild(root, component, true, false, access, nil)
 		closeErr := syscall.CloseHandle(root)
