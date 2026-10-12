@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Exact commit selected by the release workflow
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.source_sha || 'current' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+
+env:
+  GOTOOLCHAIN: local
+  GOPROXY: 'off'
+
+jobs:
+  native:
+    name: Native (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.9'
+          check-latest: false
+          cache: false
+      - name: Native tests and vet
+        run: |
+          go test -count=1 ./...
+          go vet ./...
+      - name: Native CLI smoke
+        run: |
+          binary="$RUNNER_TEMP/pwmigrate-go"
+          if [ "$RUNNER_OS" = Windows ]; then binary="$binary.exe"; fi
+          go build -trimpath -o "$binary" ./cmd/pwmigrate
+          "$binary" version --json
+          "$binary" help
+          "$binary" formats --json
+
+  linux-extra:
+    name: Linux race and root permissions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.9'
+          check-latest: false
+          cache: false
+      - name: Race tests
+        run: go test -race -count=1 ./...
+      - name: Release guard tests
+        run: python3 scripts/ci/test_release_guards.py
+      - name: Compile permission test binaries as the ordinary runner
+        run: |
+          for package in cli migration protectedoutput; do
+            go test -c -o "$RUNNER_TEMP/$package.test" "./internal/$package"
+          done
+      - name: Run uncached permission tests as root
+        # Only the compiled tests run as root. Nested CLI builds use separate
+        # caches and avoid Git's ownership checks; no Git configuration changes.
+        run: |
+          for package in cli migration protectedoutput; do
+            (
+              cd "internal/$package"
+              sudo env "PATH=$PATH" GOTOOLCHAIN=local GOPROXY=off \
+                GOFLAGS=-buildvcs=false \
+                "GOCACHE=$RUNNER_TEMP/root-go-cache" \
+                "GOMODCACHE=$RUNNER_TEMP/root-go-mod" \
+                "GOPATH=$RUNNER_TEMP/root-go-path" \
+                "$RUNNER_TEMP/$package.test" -test.count=1 -test.v
+            )
+          done
+
+  package:
+    name: Six-platform packaging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.9'
+          check-latest: false
+          cache: false
+      - name: Build and smoke packaged Linux binary
+        env:
+          VERSION: v0.0.0-ci.${{ github.run_number }}
+        run: |
+          commit=$(git rev-parse HEAD)
+          output="$RUNNER_TEMP/ci-release"
+          go run ./cmd/pwmigrate-release --version "$VERSION" --commit "$commit" --output "$output"
+          (cd "$output" && sha256sum --check SHA256SUMS)
+          mkdir "$RUNNER_TEMP/ci-smoke"
+          tar -xzf "$output/pwmigrate-go_${VERSION}_linux_amd64.tar.gz" -C "$RUNNER_TEMP/ci-smoke"
+          binary="$RUNNER_TEMP/ci-smoke/pwmigrate-go"
+          "$binary" version --json > "$RUNNER_TEMP/ci-version.json"
+          jq -e --arg version "$VERSION" --arg commit "$commit" \
+            '.program == "pwmigrate-go" and .version == $version and .commit == $commit and .goos == "linux" and .goarch == "amd64"' \
+            "$RUNNER_TEMP/ci-version.json"
+          "$binary" help
+          "$binary" formats --json
