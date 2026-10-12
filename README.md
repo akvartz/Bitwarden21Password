@@ -4,11 +4,14 @@ The Go implementation provides export inspection, field planning, and an
 **experimental Linux Chrome CSV to Bitwarden JSON converter for synthetic
 evaluation**. Conversion requires review and explicit approval in the same
 process. It is not yet a production-qualified replacement. The legacy Rust
-implementation remains available while Go milestones are validated.
+implementation is archived under `legacy/rust` while Go milestones are validated.
+The product direction is **CLI-only** on Linux, macOS and Windows. There is no
+desktop GUI or planned Wails application.
 
 ## Build and use
 
-Requires the installed Go 1.26.0 toolchain and standard library only. Build
+Requires an installed Go 1.26.0 or newer toolchain and standard library only.
+Use a maintained patched toolchain for distributed builds; hosted CI pins Go 1.26.9. Build
 without downloading a toolchain or dependencies:
 
 ```sh
@@ -25,6 +28,7 @@ need implementation/review and native tests before enabling those writers.
 ./pwmigrate-go inspect --input synthetic-bitwarden.json --from bitwarden-json --json
 ./pwmigrate-go plan --input synthetic-chrome.csv --to bitwarden-json --json
 ./pwmigrate-go plan --input synthetic-chrome.csv --to bitwarden-json --select 1,3
+./pwmigrate-go version --json
 ./pwmigrate-go formats --json
 ./pwmigrate-go help
 
@@ -131,8 +135,34 @@ The table describes normal returns; operating-system signal termination of
 read-only commands retains its normal signal exit status.
 
 Runtime processing is local: no network, telemetry, account access, remote
-assets or Rust fallback. No desktop UI, encrypted input unlocking, recovery
-writer or destination re-export comparison is implemented yet.
+assets or Rust fallback. Encrypted input unlocking, a recovery writer and destination re-export
+comparison remain planned CLI work.
+
+## Releases and platform support
+
+Release automation prepares draft experimental releases with six archives:
+Linux, macOS and Windows, each for amd64 and arm64. Each archive contains the
+CLI, license, this README and build metadata. `SHA256SUMS` and
+`release-manifest.json` record artifact integrity and the exact source commit.
+Checksums are not a signature or provider certification. No release is created
+by merging a PR or pushing a tag.
+
+Find published artifacts on the [Releases page](https://github.com/akvartz/Bitwarden21Password/releases)
+when available. Extract the archive for your platform, verify its checksum,
+and run `pwmigrate-go version --json` (or `pwmigrate-go.exe` on Windows).
+See the [release runbook](docs/releases.md) for packaging, verification and the
+manual draft-release process. Released binaries retain the same experimental
+route and platform restrictions as source builds.
+
+| Platform | Inspect, plan, formats, version | Convert |
+| --- | --- | --- |
+| Linux amd64/arm64 | Available | Experimental Chrome CSV to Bitwarden JSON |
+| macOS amd64/arm64 | Available | Disabled pending private-output qualification |
+| Windows amd64/arm64 | Available | Disabled pending DACL qualification |
+
+The CLI accepts paths via `--input` and `--output-dir`. Most terminals let you
+drag a file into the terminal to insert its path; quoting behavior depends on
+the terminal. Native file-drop launching is not implemented.
 
 ## Development and qualification
 
@@ -154,8 +184,8 @@ or release-readiness claim is made.
 
 ## Legacy Rust reference
 
-Rust source is preserved under `src/` and its existing fixtures/tests remain
-available. Its adapters reference Bitwarden, 1Password CSV, Proton Pass,
+Rust source, manifest and fixtures/tests are preserved together under
+[`legacy/rust`](legacy/rust/README.md). Its adapters reference Bitwarden, 1Password CSV, Proton Pass,
 LastPass, Chromium browsers, Firefox, Apple Passwords, KeePassXC, Dashlane,
 NordPass, Keeper, and a canonical JSON representation. This adapter list does
 not describe Go support or independently verified provider compatibility.
@@ -163,9 +193,9 @@ not describe Go support or independently verified provider compatibility.
 With an existing Rust toolchain, its documented build and test commands are:
 
 ```sh
-cargo build --release
-cargo test
-cargo clippy
+cargo build --release --manifest-path legacy/rust/Cargo.toml
+cargo test --manifest-path legacy/rust/Cargo.toml
+cargo clippy --manifest-path legacy/rust/Cargo.toml
 ```
 
 The legacy binary provides `convert`, `verify`, `inspect`, and `formats`.
@@ -174,7 +204,7 @@ incomplete mappings, ambiguous notes-marker encoding, and unprotected output
 in that implementation. Do not treat Rust as a correctness oracle or infer
 complete preservation from a legacy round-trip. Retaining provider passkey
 payloads does not demonstrate working passkey authentication or cross-provider
-compatibility. Go M1 never silently falls back to Rust.
+compatibility. The Go CLI never silently falls back to Rust.
 
 ## License
 

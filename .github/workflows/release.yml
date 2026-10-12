@@ -1,0 +1,231 @@
+name: Draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing vX.Y.Z or vX.Y.Z-prerelease tag reachable from main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: draft-release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Resolve existing tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      commit: ${{ steps.resolve.outputs.commit }}
+      tag_object: ${{ steps.resolve.outputs.tag_object }}
+    steps:
+      - name: Require dispatch from main
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate tag and resolve immutable commit
+        id: resolve
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          python3 - <<'PY'
+          # BEGIN tag validation
+          import os
+          import re
+          import sys
+
+          tag = os.environ["TAG"]
+          pattern = r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
+          match = re.fullmatch(pattern, tag)
+          if len(tag) > 128 or match is None:
+              sys.exit("Invalid release tag; use strict vX.Y.Z[-prerelease].")
+          if match[4] and any(part.isdigit() and len(part) > 1 and part.startswith("0") for part in match[4].split(".")):
+              sys.exit("Numeric prerelease identifiers must not contain leading zeroes.")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write("tag=" + tag + "\n")
+          # END tag validation
+          PY
+          tag_object=$(git rev-parse --verify "refs/tags/$TAG")
+          commit=$(git rev-parse --verify "refs/tags/$TAG^{commit}")
+          [[ "$tag_object" =~ ^[0-9a-f]{40}$ && "$commit" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "$commit" "$GITHUB_SHA"
+          printf 'commit=%s\ntag_object=%s\n' "$commit" "$tag_object" >> "$GITHUB_OUTPUT"
+
+  checks:
+    name: Check exact release commit
+    needs: resolve
+    uses: ./.github/workflows/ci.yml
+    with:
+      source_sha: ${{ needs.resolve.outputs.commit }}
+    permissions:
+      contents: read
+
+  build:
+    name: Build exact release commit
+    needs: [resolve, checks]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOTOOLCHAIN: local
+      GOPROXY: 'off'
+      TAG: ${{ needs.resolve.outputs.tag }}
+      COMMIT: ${{ needs.resolve.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.9'
+          check-latest: false
+          cache: false
+      - name: Build six platform archives
+        run: |
+          test "$(git rev-parse HEAD)" = "$COMMIT"
+          go run ./cmd/pwmigrate-release --version "$TAG" --commit "$COMMIT" --output "$RUNNER_TEMP/release"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/release/*
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+
+  publish:
+    name: Create draft prerelease
+    needs: [resolve, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.resolve.outputs.tag }}
+      COMMIT: ${{ needs.resolve.outputs.commit }}
+      TAG_OBJECT: ${{ needs.resolve.outputs.tag_object }}
+      EXPECTED_GO_VERSION: go1.26.9
+    steps:
+      # This job never checks out or executes repository/artifact code.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-assets
+          path: ${{ runner.temp }}/release
+      - name: Validate complete asset set and checksums
+        env:
+          RELEASE_DIR: ${{ runner.temp }}/release
+        run: |
+          python3 - <<'PY'
+          # BEGIN asset validation
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import stat
+          import sys
+
+          def reject():
+              sys.exit("Release asset validation failed.")
+
+          def unique_object(pairs):
+              result = {}
+              for key, value in pairs:
+                  if key in result:
+                      reject()
+                  result[key] = value
+              return result
+
+          tag = os.environ["TAG"]
+          commit = os.environ["COMMIT"]
+          if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+              reject()
+          root = Path(os.environ["RELEASE_DIR"])
+          if root.is_symlink() or not root.is_dir():
+              reject()
+          archives = {
+              f"pwmigrate-go_{tag}_{goos}_{goarch}.{'zip' if goos == 'windows' else 'tar.gz'}"
+              for goos in ("linux", "darwin", "windows")
+              for goarch in ("amd64", "arm64")
+          }
+          expected = archives | {"release-manifest.json", "SHA256SUMS"}
+          entries = list(root.iterdir())
+          if {entry.name for entry in entries} != expected:
+              reject()
+          if any(not stat.S_ISREG(entry.lstat().st_mode) or entry.lstat().st_nlink != 1 for entry in entries):
+              reject()
+          manifest = json.loads((root / "release-manifest.json").read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+          if not isinstance(manifest, dict) or set(manifest) != {"schema_version", "version", "commit", "go_version", "artifacts"}:
+              reject()
+          if type(manifest["schema_version"]) is not int or manifest["schema_version"] != 1:
+              reject()
+          if manifest["version"] != tag or manifest["commit"] != commit or manifest["go_version"] != os.environ["EXPECTED_GO_VERSION"]:
+              reject()
+          artifacts = manifest["artifacts"]
+          if not isinstance(artifacts, list) or len(artifacts) != 6:
+              reject()
+          seen = set()
+          for artifact in artifacts:
+              if not isinstance(artifact, dict) or set(artifact) != {"name", "sha256", "size"}:
+                  reject()
+              name = artifact["name"]
+              if not isinstance(name, str) or name not in archives or name in seen:
+                  reject()
+              seen.add(name)
+              if type(artifact["size"]) is not int or artifact["size"] <= 0:
+                  reject()
+              if not isinstance(artifact["sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", artifact["sha256"]) is None:
+                  reject()
+              path = root / name
+              if path.stat().st_size != artifact["size"]:
+                  reject()
+              with path.open("rb") as stream:
+                  if hashlib.file_digest(stream, "sha256").hexdigest() != artifact["sha256"]:
+                      reject()
+          checksums = {}
+          for line in (root / "SHA256SUMS").read_text(encoding="ascii").splitlines(keepends=True):
+              match = re.fullmatch(r"([0-9a-f]{64})  ([A-Za-z0-9_.-]+)\n", line)
+              if match is None or match[2] not in archives | {"release-manifest.json"} or match[2] in checksums:
+                  reject()
+              checksums[match[2]] = match[1]
+          if set(checksums) != archives | {"release-manifest.json"}:
+              reject()
+          for name, digest in checksums.items():
+              with (root / name).open("rb") as stream:
+                  if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
+                      reject()
+          print("Verified six archives, manifest, and checksums.")
+          # END asset validation
+          PY
+      - name: Recheck tag and create draft only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_DIR: ${{ runner.temp }}/release
+        run: |
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')
+          test "$current" = "$TAG_OBJECT"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'A release already exists for this tag; refusing to replace it.' >&2
+            exit 1
+          fi
+          # Explicit names prevent shell globs from selecting unexpected files.
+          assets=("$RELEASE_DIR/release-manifest.json" "$RELEASE_DIR/SHA256SUMS")
+          for goos in linux darwin windows; do
+            extension=tar.gz
+            if [ "$goos" = windows ]; then extension=zip; fi
+            for goarch in amd64 arm64; do
+              assets+=("$RELEASE_DIR/pwmigrate-go_${TAG}_${goos}_${goarch}.${extension}")
+            done
+          done
+          gh release create "$TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --target "$COMMIT" --draft --prerelease --latest=false \
+            --title "pwmigrate-go $TAG" \
+            --notes "Experimental CLI build for synthetic evaluation at commit $COMMIT. Linux supports the reviewed Chrome CSV to Bitwarden JSON route. macOS and Windows support read-only commands; conversion is disabled. Provider acceptance is unverified; encrypted inputs, recovery and signing remain incomplete. Checksums provide integrity checks, not authenticity. Review the packaged README and BUILD-INFO.json before use."

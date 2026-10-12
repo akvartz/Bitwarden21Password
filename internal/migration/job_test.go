@@ -531,6 +531,9 @@ func TestJobEmptyExportRequiresOnlyExperimentalIssue(t *testing.T) {
 }
 
 func TestJobLimitFailureDoesNotTouchFilesystem(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("native output is Linux-only")
+	}
 	parent := t.TempDir()
 	d := mustParse(t, []byte("name,url,username,password,"+strings.Repeat("A", 1<<20)+"\n"+strings.Repeat("n,u,a,p,\n", 33)), ChromeCSV)
 	job, err := d.NewJob(BitwardenJSON, nil, parent)

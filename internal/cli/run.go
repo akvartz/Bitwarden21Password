@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/akvartz/Bitwarden21Password/internal/buildinfo"
 	"github.com/akvartz/Bitwarden21Password/internal/migration"
 )
 
@@ -36,6 +37,8 @@ pwmigrate-go inspect --input PATH [--from chrome-csv|bitwarden-json] [--json]
 pwmigrate-go plan --input PATH [--from chrome-csv] --to bitwarden-json [--select 1,3] [--json]
 pwmigrate-go convert --input PATH [--from chrome-csv] --to bitwarden-json --output-dir DIRECTORY [--select 1,3] [--json]
 pwmigrate-go formats [--json]
+pwmigrate-go version [--json]
+pwmigrate-go --version
 pwmigrate-go help
 
 Format IDs are exact. Selection uses positive, unique one-based record ordinals.
@@ -70,7 +73,10 @@ func runContext(ctx context.Context, args []string, stdin io.Reader, stdout, std
 		return finishReport(err, stderr)
 	}
 	command := args[0]
-	if command != "inspect" && command != "plan" && command != "convert" && command != "formats" {
+	if len(args) == 1 && command == "--version" {
+		command = "version"
+	}
+	if command != "inspect" && command != "plan" && command != "convert" && command != "formats" && command != "version" {
 		return reportError(stderr, &failure{"invalid_arguments", 2})
 	}
 
@@ -79,7 +85,7 @@ func runContext(ctx context.Context, args []string, stdin io.Reader, stdout, std
 	options.SetOutput(io.Discard)
 	asJSON := options.Bool("json", false, "render JSON report")
 	var input, source, target, selected, parent string
-	if command != "formats" {
+	if command != "formats" && command != "version" {
 		options.StringVar(&input, "input", "", "input export")
 		options.StringVar(&source, "from", "", "source format")
 	}
@@ -102,6 +108,9 @@ func runContext(ctx context.Context, args []string, stdin io.Reader, stdout, std
 	}
 	if command == "formats" {
 		return finishReport(renderFormats(output, *asJSON), stderr)
+	}
+	if command == "version" {
+		return finishReport(renderVersion(output, *asJSON), stderr)
 	}
 	if input == "" || ((command == "plan" || command == "convert") && target == "") || (command == "convert" && parent == "") {
 		return reportError(stderr, &failure{"invalid_arguments", 2})
@@ -257,6 +266,15 @@ func renderJSON(writer io.Writer, report any) error {
 	encoder := json.NewEncoder(writer)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(report)
+}
+
+func renderVersion(writer io.Writer, asJSON bool) error {
+	info := buildinfo.Current()
+	if asJSON {
+		return renderJSON(writer, info)
+	}
+	_, err := fmt.Fprintf(writer, "%s %s (commit %s; %s; %s/%s)\n", info.Program, info.Version, info.Commit, info.GoVersion, info.GOOS, info.GOARCH)
+	return err
 }
 
 type formatCapability struct {

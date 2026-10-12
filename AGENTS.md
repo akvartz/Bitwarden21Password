@@ -2,8 +2,8 @@
 
 Read the user's working agreement, docs/superpowers/specs/2026-10-11-go-migration-design.md, and docs/agentic/README.md. Resume from docs/agentic/go-migration-status.md and verify its claims against Git/evidence.
 
-- Preserve legacy Rust while Go milestones are validated. Rust is not the correctness oracle; never silently fall back to it.
-- Keep migration/security rules in Go. CLI and desktop share the engine; desktop dependencies stay out of the CLI.
+- Preserve legacy Rust under legacy/rust while Go milestones are validated. Rust is not the correctness oracle; never silently fall back to it.
+- Keep migration/security rules in Go. The product direction is CLI-only on Linux, macOS and Windows; no desktop/Wails dependencies.
 - Preserve exact credentials, unknown fields/types, and duplicates. Never silently normalize, merge, drop, or reinterpret data.
 - Synthetic tests only. No real vaults/secret files, raw parser excerpts, sensitive labels/values, or source-derived fingerprints in logs/reports/commits.
 - No runtime network, telemetry, remote UI assets, or automatic source deletion.

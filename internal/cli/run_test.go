@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -212,11 +213,45 @@ func TestFormatsExposeOnlyM1Capabilities(t *testing.T) {
 }
 
 func TestHelpSucceedsWithoutReadingInputs(t *testing.T) {
-	for _, args := range [][]string{nil, {"help"}, {"--help"}, {"-h"}, {"inspect", "--help"}, {"plan", "--help"}, {"formats", "--help"}} {
+	for _, args := range [][]string{nil, {"help"}, {"--help"}, {"-h"}, {"inspect", "--help"}, {"plan", "--help"}, {"formats", "--help"}, {"version", "--help"}} {
 		code, stdout, stderr := invoke(args...)
-		if code != 0 || stderr != "" || !strings.Contains(stdout, "pwmigrate-go inspect") || !strings.Contains(stdout, "pwmigrate-go plan") {
+		if code != 0 || stderr != "" || !strings.Contains(stdout, "pwmigrate-go inspect") || !strings.Contains(stdout, "pwmigrate-go plan") || !strings.Contains(stdout, "pwmigrate-go version [--json]") {
 			t.Fatalf("help failed: exit %d", code)
 		}
+	}
+}
+
+func TestVersionReportsBuildMetadataWithoutReadingExports(t *testing.T) {
+	for _, args := range [][]string{{"version"}, {"--version"}, {"version", "--json"}} {
+		t.Run(strings.Join(args, "_"), func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+			code := run(args, &stdout, &stderr, func(string) (inputFile, error) {
+				t.Fatal("version must not open an export")
+				return nil, errors.New("unexpected export read")
+			})
+			if code != 0 || stderr.Len() != 0 {
+				t.Fatalf("version failed: exit %d, stderr %q", code, stderr.String())
+			}
+			if len(args) == 2 {
+				var got map[string]string
+				if err := json.Unmarshal(stdout.Bytes(), &got); err != nil {
+					t.Fatal(err)
+				}
+				want := map[string]string{
+					"program": "pwmigrate-go", "version": "dev", "commit": "unknown",
+					"go_version": runtime.Version(), "goos": runtime.GOOS, "goarch": runtime.GOARCH,
+				}
+				if !reflect.DeepEqual(got, want) {
+					t.Fatalf("unexpected build metadata: got %v, want %v", got, want)
+				}
+			} else {
+				for _, term := range []string{"pwmigrate-go", "dev", "unknown", runtime.Version(), runtime.GOOS + "/" + runtime.GOARCH} {
+					if !strings.Contains(stdout.String(), term) {
+						t.Fatalf("version omitted %q", term)
+					}
+				}
+			}
+		})
 	}
 }
 
@@ -242,6 +277,12 @@ func TestArgumentErrorsAreRedacted(t *testing.T) {
 		{"irrelevant_source", []string{"formats", "--from", "chrome-csv"}},
 		{"output_flag", []string{"plan", "--input", path, "--to", "bitwarden-json", "--output", "SYNTHETIC_OUTPUT_PATH"}},
 		{"help_leftover", []string{"help", "SYNTHETIC_POSITIONAL"}},
+		{"version_input", []string{"version", "--input", path}},
+		{"version_source", []string{"version", "--from", "chrome-csv"}},
+		{"version_positional", []string{"version", "SYNTHETIC_POSITIONAL"}},
+		{"version_invalid_bool", []string{"version", "--json=SYNTHETIC_BOOL"}},
+		{"version_alias_json", []string{"--version", "--json"}},
+		{"version_alias_positional", []string{"--version", "SYNTHETIC_POSITIONAL"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -324,6 +365,7 @@ func (w failingWriter) Write(p []byte) (int, error) {
 func TestReportWriterFailuresCannotReturnSuccess(t *testing.T) {
 	path := inputFixture(t, syntheticCSV)
 	commands := [][]string{{"help"}, {"formats"}, {"formats", "--json"}, {"inspect", "--input", path}, {"inspect", "--input", path, "--json"}, {"plan", "--input", path, "--to", "bitwarden-json"}, {"plan", "--input", path, "--to", "bitwarden-json", "--json"}}
+	commands = append(commands, []string{"version"}, []string{"version", "--json"}, []string{"--version"})
 	for _, short := range []bool{false, true} {
 		for _, args := range commands {
 			var stderr bytes.Buffer

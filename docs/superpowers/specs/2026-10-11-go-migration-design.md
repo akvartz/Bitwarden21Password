@@ -8,7 +8,7 @@ Help ordinary people move between password managers and understand exactly what 
 
 The user approved:
 
-- A Go engine shared by supported CLI and desktop apps on Linux, macOS, and Windows. They can test Linux/macOS and a Windows VM.
+- A Go engine with a CLI-only product on Linux, macOS, and Windows. They can test Linux/macOS and a Windows VM.
 - Bitwarden, 1Password, and Proton Pass in both directions; browser exports as sources.
 - Export files only, with local processing. No account authentication or direct vault API access.
 - Supported encrypted exports unlock locally without saving passwords.
@@ -19,19 +19,19 @@ The user approved:
 - Field-level accounting, generated-output checks, and optional destination re-export comparison.
 - No telemetry, remote UI assets, or automatic source deletion.
 
-Wails v2 with a small TypeScript UI is the selected desktop approach. Keep business rules in Go and desktop dependencies out of the CLI. Choose the frontend component framework in the desktop milestone based on accessibility and maintenance.
+Update accepted 2026-10-11: the user selected CLI-only delivery. Remove the desktop/Wails milestone and focus on guided review, clear reports, terminal usability and deliberate automation. Keep business rules in Go. Native drag-and-drop launchers are not required for this milestone.
 
 ## Baseline and constraints
 
 Reference revision: `46f0db74b73ac6b3294c935aacdad631a59ef6d4`. The Rust code has 14 adapters, 18 test functions, and five fixtures. Source review found password trimming, secret-bearing errors, incomplete identity mappings, ambiguous notes encoding, and unprotected output. Rust is reference material, not a correctness oracle. Preserve it during replacement.
 
-Go 1.26.0, Node 22.22.1, npm, and gh are installed. Rust/Wails were unavailable. Do not acquire tools or new dependencies; the user handles provisioning. M1 uses only the Go standard library with `GOTOOLCHAIN=local GOPROXY=off`. Local synthetic testing is not release-security qualification: use a maintained patched toolchain before releasing.
+Go 1.26.0, Node 22.22.1, npm, and gh are installed. Rust was unavailable. Do not acquire tools or new dependencies; the user handles provisioning. M1 uses only the Go standard library with `GOTOOLCHAIN=local GOPROXY=off`. Local synthetic testing is not release-security qualification: use a maintained patched toolchain before releasing.
 
 ## Architecture
 
 `source -> strict parser -> complete inventory + typed projection -> selection -> plan -> review/approval -> protected output -> validation -> optional destination comparison`
 
-Inventory retains every source field and unfamiliar provider payload; typed projections simplify known mappings. Missing projection support must never erase inventory. Begin with one `internal/migration` package split by responsibility, a thin `cmd/pwmigrate`, and testable `internal/cli`. Add archive, crypto, output, and desktop boundaries only when needed. No generic plugin framework or daemon.
+Inventory retains every source field and unfamiliar provider payload; typed projections simplify known mappings. Missing projection support must never erase inventory. Begin with one `internal/migration` package split by responsibility, a thin `cmd/pwmigrate`, and testable `internal/cli`. Add archive, crypto and output boundaries only when needed. No generic plugin framework or daemon.
 
 ### Fidelity and reporting
 
@@ -66,9 +66,11 @@ Follow each provider's authenticated format with maintained implementations and 
 
 Evaluate age and its maintained Go implementation for recovery in a separate dependency/security gate. Encrypt payloads and manifest; deliver a reader and independent interoperability/tamper tests in the same milestone. Passwords/keys come from local prompts/UI, never argv/logs/preferences. Explain recovery-key responsibility and plaintext destination requirements before output. Never automatically delete originals after import.
 
-### Desktop boundary
+### CLI usability and automation
 
-Expose a narrow facade for open/inspect/select/plan/approve/commit/compare/cancel. No arbitrary filesystem bindings or raw-vault getter. Use embedded local assets, restrictive CSP, escaped text, no remote navigation, no vault data in browser storage, and deliberate secret reveal. Require keyboard navigation, focus management, accessible labels, progress, and cancellation.
+Keep commands discoverable with help, version metadata, actionable fixed error codes and readable review reports. Use keyboard-driven selection without exposing vault values in durable logs. Support quoted paths and document terminal path drag-and-drop; native desktop launchers are outside the product direction.
+
+Plan a versioned automation protocol that preserves exact issue acknowledgment, immutable-snapshot binding, cancellation and duplicate-aware destination comparison. Do not add blanket --yes approval. Machine-readable reports and human guidance must reflect the same safety gates. Keep source values out of public reports and CI artifacts.
 
 ## Provider capability policy
 
@@ -89,7 +91,7 @@ Primary references checked 2026-10-11:
 - [Bitwarden export](https://bitwarden.com/help/export-your-data/), [encrypted export](https://bitwarden.com/help/encrypted-export/), [custom JSON import](https://bitwarden.com/help/condition-bitwarden-import/).
 - [Proton export](https://proton.me/support/pass-export).
 - [Bitwarden source snapshot](https://github.com/bitwarden/clients/tree/df9641824436b65207f393d35b8d07225129797b/libs/tools/export-vault-core/src/services), [Proton archive source](https://github.com/ProtonMail/WebClients/blob/c8393e366e69bfa89762c5d0a9c2fb39b99c1ba4/packages/pass/lib/export/archive.ts), [Proton export UI](https://github.com/ProtonMail/WebClients/blob/c8393e366e69bfa89762c5d0a9c2fb39b99c1ba4/packages/pass/components/Export/ExportForm.tsx).
-- [Wails](https://wails.io/docs/introduction/), [v2/v3 status](https://v3.wails.io/faq/), [Go filesystem APIs](https://pkg.go.dev/os@go1.26.0), [age format](https://age-encryption.org/v1).
+- [Go filesystem APIs](https://pkg.go.dev/os@go1.26.0), [age format](https://age-encryption.org/v1).
 
 Source snapshots and docs are not live-provider test evidence.
 
@@ -101,7 +103,7 @@ Source snapshots and docs are not live-provider test evidence.
 | M2 | First protected Chrome-to-Bitwarden execution | Bound approval, no-clobber/failure tests, Unix permissions, Windows DACL/native tests before Windows output, synthetic destination import |
 | M3 | Rich Bitwarden/1PUX/Proton routes and selection | Direction-specific profiles/fixtures, archive limits, attachment ambiguity, provider evidence |
 | M4 | Encrypted inputs and recovery writer/reader | Provisioned maintained dependencies, independent vectors, tamper/truncation/KDF limits, security review |
-| M5 | Wails desktop and destination comparison | Same engine, keyboard/accessibility, duplicate-aware matching, native Linux/macOS/Windows checks |
+| M5 | CLI usability, automation and destination comparison | Guided review/selection, stable reports, explicit approval, duplicate-aware matching, native Linux/macOS/Windows checks |
 | M6 | Release readiness | Patched/pinned tools, installable artifacts, supported-route matrix, user testing, signing/build provenance |
 
 Split platform/provider work into independently gated slices when useful. Missing dependencies block their capability, not unrelated work. A milestone pass never means the full product is complete. Releases/tags remain user actions.
@@ -110,7 +112,7 @@ Split platform/provider work into independently gated slices when useful. Missin
 
 M1 is a read-only tool for synthetic evaluation, not a production converter replacement. No `convert`, output-file flag, password prompt, recovery writer, desktop code, or network access.
 
-Module `github.com/akvartz/Bitwarden21Password`; Go floor `1.26.0`; standard library only. Keep Rust unchanged. Build the Go binary as `pwmigrate-go` during coexistence.
+Module `github.com/akvartz/Bitwarden21Password`; Go floor `1.26.0`; standard library only. Keep Rust files unchanged under legacy/rust. Build the Go binary as `pwmigrate-go` during coexistence.
 
 ```
 pwmigrate-go inspect --input PATH [--from chrome-csv|bitwarden-json] [--json]
