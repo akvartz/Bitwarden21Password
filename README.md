@@ -7,8 +7,9 @@ re-export. Runtime processing needs no network, telemetry or provider login.
 
 **The candidate is experimental. Actual provider-import qualification is not
 run. Protected output is enabled on Linux, macOS and Windows after platform
-qualification. Fresh public Windows CLI journeys for the newly enabled build
-still need CI. It is not yet a qualified or published 1.0.0 release.** Use
+qualification. Native privacy and source-built public CLI journeys passed on
+all six targets; packaged binaries passed native version/help/formats smoke
+checks. It is not yet a qualified or published 1.0.0 release.** Use
 synthetic data to evaluate it. The [acceptance ledger](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/release-1.0-progress.md)
 records the remaining 1.0 gates; the [release runbook](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/releases.md) separates
 candidate validation from publication.
@@ -17,10 +18,14 @@ candidate validation from publication.
 
 When published, download an archive for your operating system and architecture
 from [GitHub Releases](https://github.com/akvartz/Bitwarden21Password/releases).
-Verify its archive checksum against `SHA256SUMS` before extraction: use
-`sha256sum --check SHA256SUMS` on Linux, `shasum -a 256 -c SHA256SUMS` on macOS,
-or compare `Get-FileHash -Algorithm SHA256` results on Windows. Check the
-manifest's source commit against the intended release. Checksums establish byte
+Download `SHA256SUMS` and `release-manifest.json` alongside your chosen archive.
+Before extraction, calculate that archive's SHA-256 with `sha256sum "ARCHIVE"`
+on Linux, `shasum -a 256 "ARCHIVE"` on macOS, or
+`Get-FileHash -Algorithm SHA256 -LiteralPath 'ARCHIVE'` on Windows. Replace
+`ARCHIVE` with the downloaded filename and compare all 64 hexadecimal digits
+against its exact filename entry in `SHA256SUMS`; letter case is immaterial.
+The checksum file lists other platforms too; checking every entry requires all
+listed files. Check the manifest's source commit against the intended release. Checksums establish byte
 integrity; unsigned checksums do not establish publisher authenticity.
 
 Extract the archive, open a terminal in that directory, and run:
@@ -129,18 +134,20 @@ passkey or SSH authentication claim is made.
 
 Export from your source application using a supported profile. Keep that
 original file until you have independently checked the destination. These
-examples use synthetic files and a private Linux/macOS output parent. On macOS,
-prepare a local APFS/HFS+ directory with ownership enabled and no extended ACL
-using the [native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md)
-before conversion:
+examples use synthetic files and a new private Linux/macOS output parent at
+`$HOME/pwmigrate-output`. On Linux, create it with
+`mkdir -m 700 "$HOME/pwmigrate-output"`. On macOS, prepare that directory on a
+local APFS/HFS+ volume with ownership enabled and no extended ACL using the
+[native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md).
+Both procedures refuse an existing directory. Then use the prepared parent:
 
 ```sh
 ./pwmigrate-go inspect --input "synthetic bitwarden.json" --from bitwarden-json
 ./pwmigrate-go plan --input "synthetic bitwarden.json" --to onepassword-1pux
 ./pwmigrate-go plan --input "synthetic bitwarden.json" --to onepassword-1pux --select 1,3 --folder 1 --kind login,card --json
 
-mkdir -m 700 "synthetic output"
-./pwmigrate-go convert --input "synthetic bitwarden.json" --to onepassword-1pux --output-dir "synthetic output"
+task_output_parent="$HOME/pwmigrate-output"
+./pwmigrate-go convert --input "synthetic bitwarden.json" --to onepassword-1pux --output-dir "$task_output_parent"
 ```
 
 On Windows, prepare a new local fixed-NTFS directory with the protected
@@ -154,9 +161,10 @@ Use the recipe's `$outputParent` variable in that PowerShell session:
 .\pwmigrate-go.exe convert --input 'synthetic bitwarden.json' --to onepassword-1pux --output-dir $outputParent
 ```
 
-The PowerShell/.NET setup recipe has source/static review; native fixtures test
-equivalent current-token directory/security APIs. The recipe itself has not
-been executed as native qualification evidence.
+The exact PowerShell/.NET setup recipe passed native execution on both
+architectures using the CI runner account. Separate native privacy tests cover
+the standard-user writer; those tests are distinct from running the recipe as
+a standard user. Public conversion/recovery passed on both architectures.
 
 Inspection reports record/item-kind counts and source coverage caveats without
 printing names or secrets. Record, vault and folder identifiers in selection
@@ -167,6 +175,32 @@ omitted criterion selects the whole export in that dimension. Combine
 results retain source order. Malformed, repeated, out-of-range or supplied
 empty criteria, and filters that select no records, fail. A format without
 vaults/folders cannot satisfy a corresponding container filter.
+
+Provider exports flag conservative duplicate candidates with
+`duplicate_detection: exact_provider_content_v1` and the caveat
+`provider_duplicate_candidates_exact_content_only`. A candidate group requires
+the same native vault/folder and exact complete item content, except for these
+native bookkeeping fields:
+
+| Source | Item identity fields ignored when well typed | Creation/update fields ignored when well typed |
+| --- | --- | --- |
+| Bitwarden | `id` | `creationDate`, `revisionDate` |
+| 1PUX | `uuid` | `createdAt`, `updatedAt` |
+| Proton | `itemId`, `data.metadata.itemUuid` | `createTime`, `modifyTime` |
+
+Identity exemptions require a nonempty printable ASCII token without whitespace.
+Bitwarden timestamps must be valid full RFC3339Nano strings; 1PUX/Proton
+timestamps must be canonical integer epoch seconds from 0 through 253402300799.
+Malformed, empty or null bookkeeping values remain part of content.
+Object member order is immaterial; array order, value types,
+absent/null/empty distinctions, whitespace, passwords, key representations and
+unknown fields remain exact. A changed password stays distinct. An empty
+candidate list does not establish uniqueness, and a flag never merges records
+or authorizes loss.
+
+Browser duplicate candidates use exact name/URL/username for Chrome and Safari,
+or exact URL/username for Firefox. Their candidate key excludes the password,
+so rows with different passwords can be flagged together; every row is retained.
 
 Read the plan and conversion review, including every affected record/field
 ordinal and source-metadata issue. Reports omit labels to keep them safe; use
@@ -241,15 +275,16 @@ archive attachments and metadata, in a binary age v1 file. If the original was
 already an encrypted provider export, recovery retains those encrypted bytes;
 its original export password is still needed after restoration.
 
-Create a recovery key in a private existing directory prepared for your
-platform, then use the generated `recovery-key.txt` path shown by its receipt.
-These are Linux/macOS command examples; on Windows use `.\pwmigrate-go.exe`
-and a separately prepared private NTFS key directory:
+Prepare a separate new private key parent at `$HOME/pwmigrate-keys` using the
+same platform procedure: on Linux use `mkdir -m 700 "$HOME/pwmigrate-keys"`;
+on macOS repeat the native output journey with `pwmigrate-keys` as the new
+directory name. Create a recovery key there, then use the generated
+`recovery-key.txt` path shown by its receipt. These are Linux/macOS examples:
 
 ```sh
-mkdir -m 700 "synthetic keys"
-./pwmigrate-go recovery-key --output-dir "synthetic keys"
-./pwmigrate-go convert --input "synthetic bitwarden.json" --to onepassword-1pux --output-dir "synthetic output" --recovery-key-file "synthetic keys/JOB_DIRECTORY/recovery-key.txt" --json
+task_key_parent="$HOME/pwmigrate-keys"
+./pwmigrate-go recovery-key --output-dir "$task_key_parent"
+./pwmigrate-go convert --input "synthetic bitwarden.json" --to onepassword-1pux --output-dir "$task_output_parent" --recovery-key-file "$task_key_parent/JOB_DIRECTORY/recovery-key.txt" --json
 ```
 
 Replace `JOB_DIRECTORY` with the generated basename. The key is a secret age
@@ -259,12 +294,22 @@ encrypted recovery and back it up securely. A lost key makes recovery
 unreadable. Sharing the key permits decryption. This profile accepts one native
 X25519 key, not age passwords, plugins, SSH keys or multiple recipients.
 
+On Windows, keep the conversion parent's path with
+`$conversionParent = $outputParent`, repeat the protected-directory recipe with
+`pwmigrate-keys` as its new name, and keep that path in
+`$keyParent = $outputParent`. Then use:
+
+```powershell
+.\pwmigrate-go.exe recovery-key --output-dir $keyParent
+.\pwmigrate-go.exe convert --input 'synthetic bitwarden.json' --to onepassword-1pux --output-dir $conversionParent --recovery-key-file "$keyParent/JOB_DIRECTORY/recovery-key.txt" --json
+```
+
 If unsupported records block conversion, save recovery independently without
 claiming that any record migrated. This also permits retaining an attachment-only
 original. Specify the original's format explicitly:
 
 ```sh
-./pwmigrate-go recovery-save --input "synthetic original.1pux" --from onepassword-1pux --key-file "synthetic keys/JOB_DIRECTORY/recovery-key.txt" --output-dir "synthetic output"
+./pwmigrate-go recovery-save --input "synthetic original.1pux" --from onepassword-1pux --key-file "$task_key_parent/JOB_DIRECTORY/recovery-key.txt" --output-dir "$task_output_parent"
 ```
 
 `recovery-save` encrypts exact original bytes with the declared format; it does
@@ -273,22 +318,34 @@ This explicit save command needs no conversion approval. Its receipt states
 `whole_source_not_migrated`; it does not report destination migration. Recovery
 is limited to a 32 MiB original and 48 MiB ciphertext.
 
-Approve the additional whole-source retention issue. The successful conversion
-receipt identifies both the destination artifact and the separate `recovery.age`
-artifact. Restore into a new private output parent:
+When converting with `--recovery-key-file`, approve the additional whole-source
+retention issue. The successful conversion receipt identifies both the
+destination artifact and the separate `recovery.age`
+artifact. For restoration, prepare another new private parent at
+`$HOME/pwmigrate-restored` with the same Linux/macOS procedure:
 
 ```sh
-mkdir -m 700 "synthetic restored"
-./pwmigrate-go recover --input "synthetic output/RECOVERY_JOB_DIRECTORY/recovery.age" --key-file "synthetic keys/JOB_DIRECTORY/recovery-key.txt" --output-dir "synthetic restored"
+task_restore_parent="$HOME/pwmigrate-restored"
+./pwmigrate-go recover --input "$task_output_parent/RECOVERY_JOB_DIRECTORY/recovery.age" --key-file "$task_key_parent/JOB_DIRECTORY/recovery-key.txt" --output-dir "$task_restore_parent"
+```
+
+On Windows, prepare `pwmigrate-restored` with the protected-directory recipe and
+save its path in `$restoreParent = $outputParent`. Use the successful recovery
+job basename from its receipt:
+
+```powershell
+.\pwmigrate-go.exe recover --input "$conversionParent/RECOVERY_JOB_DIRECTORY/recovery.age" --key-file "$keyParent/JOB_DIRECTORY/recovery-key.txt" --output-dir $restoreParent
 ```
 
 `recover` authenticates the complete ciphertext before publishing a source
 file. The receipt identifies its new directory and `source.csv`, `source.json`,
 `source.1pux` or `source.zip`. Restoration reproduces original bytes, not an
 importable destination conversion. The restored original may itself contain
-plaintext. [Recovery framing and evidence](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/internal/recovery/README.md) record
-the package limits and maintained age interoperability separately from native
-age CLI qualification.
+plaintext. [Recovery framing and evidence](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/internal/recovery/README.md)
+record the package limits, maintained age implementation and interoperability
+tests. The acceptance ledger separately records both official age CLI
+directions for all six source formats; this does not qualify native provider
+encrypted exports or imports.
 
 ## Compare a destination re-export
 
@@ -410,9 +467,9 @@ be manually evaluated in native destination clients on other platforms.
 
 | Platform | Inspect, plan, compare, formats, version | Public convert/recovery output |
 | --- | --- | --- |
-| Linux amd64/arm64 | Built for both architectures | Experimental; record native runtime evidence by architecture |
+| Linux amd64/arm64 | Built for both architectures | Enabled; native privacy and public CLI journeys passed on both architectures |
 | macOS amd64/arm64 | Built for both architectures | Enabled; native privacy and public CLI journeys passed on both architectures |
-| Windows amd64/arm64 | Built for both architectures | Enabled after native privacy qualification; newly enabled public CLI journey checks pending fresh CI |
+| Windows amd64/arm64 | Built for both architectures | Enabled; native privacy, public CLI and documented PowerShell setup passed on both architectures |
 
 Local tests, native CI, six-architecture packaging and provider imports are
 separate evidence. Cross-compilation proves a build, not native behavior;
@@ -421,9 +478,17 @@ macOS public CLI and native privacy checks passed on both architectures at
 public source commit `04bf2b56fdba8e54a245c19d4754cbe471e20268` in
 [run 38222484451](https://github.com/akvartz/Bitwarden21Password/actions/runs/38222484451).
 That run also passed Windows native privacy qualification on both architectures
-while Windows public output was disabled. Fresh checks of the newly enabled
-Windows CLI remain a separate gate; no native provider import or authentication
-follows from these platform results.
+while Windows public output was disabled. At public source commit
+`d85907c6424d18d3396a9d3b0b1485d56945181d`,
+[run 38226720660](https://github.com/akvartz/Bitwarden21Password/actions/runs/38226720660)
+passed all fourteen jobs, including native privacy, public Windows
+CLI/provider/recovery and the documented PowerShell setup on both architectures,
+plus all six native packaged-binary version/help/formats smoke checks. Public
+conversion/recovery journeys use source-built binaries; those results are
+separate from the packaged-binary smoke checks. The PowerShell recipe ran under
+the CI runner account; standard-user writer evidence is separately recorded.
+Changed candidate code needs fresh checks at its exact commit. No native
+provider import or authentication follows from these platform results.
 
 ## Legacy and license
 

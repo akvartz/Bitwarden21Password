@@ -10,12 +10,17 @@ on:
         description: Exact commit selected by the release workflow
         required: true
         type: string
+      source_version:
+        description: Optional release tag; empty uses the run's synthetic CI version
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.source_sha || 'current' }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.source_sha || 'current' }}-${{ inputs.source_version || 'ci' }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
@@ -169,7 +174,7 @@ jobs:
           git diff --exit-code -- go.mod go.sum
       - name: Build and smoke packaged Linux binary
         env:
-          VERSION: v0.0.0-ci.${{ github.run_number }}
+          VERSION: ${{ inputs.source_version || format('v0.0.0-ci.{0}', github.run_number) }}
         run: |
           commit=$(git rev-parse HEAD)
           output="$RUNNER_TEMP/ci-release"
@@ -222,7 +227,7 @@ jobs:
       - name: Verify and run the exact packaged native executable
         env:
           SOURCE_COMMIT: ${{ inputs.source_sha || github.event.pull_request.head.sha || github.sha }}
-          VERSION: v0.0.0-ci.${{ github.run_number }}
+          VERSION: ${{ inputs.source_version || format('v0.0.0-ci.{0}', github.run_number) }}
           EXPECTED_GOOS: ${{ matrix.goos }}
           EXPECTED_GOARCH: ${{ matrix.goarch }}
           OUTPUT_SUPPORTED: ${{ matrix.output_supported }}

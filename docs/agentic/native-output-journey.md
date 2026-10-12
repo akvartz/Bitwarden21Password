@@ -1,7 +1,9 @@
 # Prepare a private output directory on Windows or macOS
 
 **Current status: macOS and Windows output are enabled after native amd64/arm64
-privacy qualification. Fresh public Windows CLI journeys remain pending.**
+privacy qualification. Public CLI conversion/recovery journeys passed on both
+architectures. The documented Windows PowerShell setup passed on both
+architectures under the CI runner account.**
 These instructions prepare an ordinary user's directory; they do not enable a
 disabled binary or establish native provider acceptance.
 Authored platform tests and cross-compilation are separate from successful
@@ -201,8 +203,15 @@ the password is one JSON-string line followed by the current conversion approval
 line. An existing age key is supplied by **file path** with
 `--recovery-key-file` or `--key-file`, not by placing its secret contents in argv.
 Create a separate private key directory using the same platform preparation
-procedure. Whole-source recovery includes excluded records and unsupported
-data; it is preserved, not migrated. Losing the separately stored key makes
+procedure, choosing `pwmigrate-keys` in place of `pwmigrate-output`. For restored
+source files, prepare another new parent named `pwmigrate-restored` in the same
+way. On Windows, retain each recipe result in a separate variable before the
+next invocation: `$conversionParent = $outputParent`,
+`$keyParent = $outputParent` or `$restoreParent = $outputParent`, as appropriate.
+On macOS, use the corresponding quoted `$HOME/pwmigrate-...` path. Every invocation needs
+a new directory name; existing parents are not modified. Whole-source recovery
+includes excluded records and unsupported data; it is preserved, not migrated.
+Losing the separately stored key makes
 recovery unreadable.
 
 The export/recovery job is not one atomic filesystem transaction. A nonzero
@@ -227,17 +236,24 @@ The requirements above follow the current
 [macOS privacy checks](../../internal/protectedoutput/output_darwin.go).
 Windows privacy qualification passed on amd64 and arm64 at `04bf2b5` before
 public enablement. macOS public conversion/recovery journeys already passed on
-both architectures. Fresh Windows public CLI journeys must be recorded for the
-enabled candidate. Ordinary-user parent preparation and public CLI output need
-native evidence for the exact reviewed candidate.
-The Windows fixture uses equivalent current-token native directory/security
-APIs; it does not execute this PowerShell/.NET recipe. The command recipes have
-source/static review only until native execution is recorded.
+both architectures. At public source commit
+`d85907c6424d18d3396a9d3b0b1485d56945181d`,
+[run 38226720660](https://github.com/akvartz/Bitwarden21Password/actions/runs/38226720660)
+passed all fourteen jobs, including Windows public CLI/provider/recovery and
+native privacy checks on both architectures, this exact PowerShell recipe on
+both architectures, and all six native packaged-binary version/help/formats
+smoke checks. Public conversion/recovery journeys use source-built binaries;
+they are separate from the packaged-binary smoke checks. The recipe
+ran under the CI runner account. Separate standard-user writer fixtures use
+current-token native directory/security APIs; those fixtures do not establish
+PowerShell recipe execution as a standard user. Changed candidate code still
+requires evidence at its exact reviewed commit.
 
 Retain a sanitized record of OS/architecture/filesystem, converter version and
 public source commit, public `output_platform_supported` value, ordinary-user
 setup outcome, native permission/no-clobber/cancellation/failure checks and
 packaged-binary smoke result. Do not attach personal paths, SIDs, source values,
 passwords, keys or source-derived fingerprints. Cross-compilation and static
-review are authored evidence only; actual native execution remains pending
-until a recorded passing run establishes it.
+review alone are authored evidence. The recorded native runs above establish
+their scoped execution results; provider-native import and authentication
+remain separate qualification gates.

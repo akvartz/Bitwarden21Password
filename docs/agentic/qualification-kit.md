@@ -12,9 +12,11 @@ preparation changes provider qualification from **NOT RUN**.
 Use an existing Python 3 installation (standard library only) and the trusted,
 reviewed Linux candidate. The script installs nothing, builds nothing, uses no
 network and accesses no provider account. This helper's preparation is
-Linux-only. The candidate enables macOS output after native privacy checks,
-with fresh public CLI journey checks still pending; the helper does not provide
-that evidence. A successful synthetic artifact can be imported manually in a
+Linux-only. The candidate enables protected output on Linux, macOS and Windows;
+native macOS/Windows privacy and public CLI journeys passed on both
+architectures. The documented Windows PowerShell directory setup passed on
+both architectures under the CI runner account. This helper does not provide
+platform qualification evidence. A successful synthetic artifact can be imported manually in a
 destination application on another platform without qualifying that platform's
 writer. See the [native output journey](native-output-journey.md) for ordinary
 private-directory preparation.

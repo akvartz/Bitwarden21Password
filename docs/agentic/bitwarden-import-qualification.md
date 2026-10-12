@@ -31,13 +31,13 @@ Bitwarden source research found downstream changes even when generated JSON is e
 
 ## Procedure
 
-1. Build the reviewed converter with the existing pinned toolchain. Keep the test output parent owned by the current user and not writable by others.
+1. Build the reviewed converter with the existing pinned toolchain. Prepare a private output parent under the current platform's permission/ACL/volume policy; see the [ordinary native output journey](native-output-journey.md). A Unix mode alone does not prepare a Windows DACL.
 2. Inspect and plan the synthetic fixture. Check total/selected/excluded counts and duplicates.
 3. Run convert, read the review, and enter exactly the requested issue acknowledgments. A nonzero exit or missing completion receipt means the job is not qualified; do not import a leftover partial or final artifact from that job.
 4. Check the successful JSON locally against the independent fixture expectations. This is local evidence only.
 5. Manually import the successful file using Bitwarden's documented Bitwarden JSON import route into the empty disposable vault.
 6. Record acceptance or the provider's non-sensitive error. Inspect item counts, hidden field types, exact values and duplicate multiplicity. Do not trim/canonicalize values to make comparisons pass.
-7. Manually re-export the synthetic destination if supported and compare semantic values plus multiplicity, distinguishing absent/null/empty and unavailable fields. Current converter does not yet automate destination comparison.
+7. Manually re-export the synthetic destination if supported. Use the current converter's `compare` command with the original source, target and supplied re-export, preserving any conversion filters. For this baseline route: `./pwmigrate-go compare --input "synthetic original.csv" --from chrome-csv --to bitwarden-json --destination "synthetic reexport.json" --json`. Assess semantic values and multiplicity, distinguishing absent/null/empty and unavailable fields. `destination_import_verified:false` remains expected: a supplied comparison does not observe the import event. Follow the [current all-destination procedure](provider-qualification.md) for rich item and additional route coverage.
 8. Record each discrepancy and whether the preflight issue correctly warned about it. Fix/qualify the specific route/profile; never label all password-manager formats qualified from this test.
 
 No automatic source deletion, live-account migration, release, or claim of working passkey transfer is part of this procedure. Cleanup of the disposable vault and local plaintext fixtures is a user action. Failed converter jobs can retain private artifacts; secure erasure is not guaranteed.

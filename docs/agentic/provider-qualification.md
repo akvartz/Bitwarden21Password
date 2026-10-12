@@ -112,11 +112,25 @@ retention separate from destination outcomes.
 | `password-protected-input` | Native synthetic Bitwarden PBKDF2/Argon2id or admitted Proton encrypted export unlocks with exact password; wrong-password/tampered inputs produce no successful conversion |
 | `recovery-original` | Whole original bytes, including excluded records and archive members, recover with the saved key; wrong key/truncation/tampering produces no successful restored artifact |
 
+For provider duplicate candidates, confirm `exact_provider_content_v1` flags
+equal complete native item content within the same vault/folder, ignoring only
+well-typed native item identity and creation/update fields documented in the
+README. A password-only change must remain distinct; unknown fields, array
+order, concealment, relationships and absent/null/empty distinctions must
+participate. The fixed `provider_duplicate_candidates_exact_content_only`
+caveat discloses the conservative scope; unflagged items are not proven unique.
+For browser fixtures, exact title/URL/username (Chrome/Safari) or URL/username
+(Firefox) candidates can include different passwords. In every case all source
+records and selected multiplicity must survive conversion without merging.
+
 ## Run each destination test
 
 1. Build or extract the exact reviewed candidate. Record `version --json` and
-   `formats --json`. Public output is enabled for Linux and macOS in the
-   candidate; the newly enabled macOS CLI journeys still need fresh CI.
+   `formats --json`. Public output is enabled for Linux, macOS and Windows in
+   the candidate. Native macOS/Windows privacy and public CLI journeys passed
+   on both architectures; the documented Windows PowerShell setup passed on
+   both architectures under the CI runner account. Record the exact build's
+   evidence separately from provider import acceptance.
    Prepare a suitable private parent using the
    [native output journey](native-output-journey.md). You can manually
    transfer a synthetic successful artifact to a native destination app on

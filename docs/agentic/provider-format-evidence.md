@@ -242,7 +242,16 @@ Generated-output pair validation and independent local key/field checks remain
 separate from provider-native acceptance and SSH authentication. Every route is
 experimental; native import/authentication qualification is **NOT RUN**.
 
-## Encryption and recovery dependency gate
+## Historical encryption and recovery dependency research
+
+This section preserves the dependency research before provisioning. The user
+authorized the pinned modules on 2026-10-12, and bounded provider decryption and
+whole-source age recovery writer/reader are now implemented. Independent
+vectors and both official age CLI directions for all six source formats are
+recorded in the [acceptance ledger](release-1.0-progress.md) and linked package
+evidence below. Native provider-export and destination import qualification
+remain separate open gates. The prerequisites and candidate choices below are
+the original research snapshot, not current missing implementation.
 
 No implementation or provider acceptance is established by this dependency research. Provisioning is a prerequisite to independently reviewed crypto work; missing modules must not be replaced with invented primitives.
 

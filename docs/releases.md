@@ -4,7 +4,9 @@ Releases, tags, security-sensitive merges and stable promotion are maintainer
 actions. This candidate remains experimental: all provider import profiles are
 unqualified. Linux, macOS and Windows public output are enabled; native macOS
 and Windows privacy qualification passed on amd64 and arm64 before enablement.
-Fresh public Windows conversion/recovery evidence is still required. Packaging alone
+Source-built public CLI journeys and native packaged-binary version/help/formats
+smoke checks passed on all six targets; the documented Windows PowerShell setup
+passed on both architectures. Packaging alone
 does not satisfy the finished 1.0 objective.
 Use synthetic data for every smoke/import/recovery check.
 
@@ -107,13 +109,24 @@ gh workflow run release.yml --repo akvartz/Bitwarden21Password --ref main -f tag
 ```
 
 The manually dispatched workflow accepts main, resolves the existing tag to an
-exact commit, checks ancestry, runs CI against that commit, builds with
-read-only repository permissions, and rechecks the tag before creating a draft
-prerelease. No release is created just by merging a PR or pushing a tag. The
-publishing job validates the exact asset set, manifest and checksums before
-using its write token; it does not execute checked-out project/artifact code.
-Review the current workflow's actual permissions and steps at the chosen
-commit when recording release-path evidence.
+exact commit, checks ancestry, and passes that commit plus the validated tag as
+`source_sha`/`source_version` to reusable CI. CI packages the six archives once
+with read-only repository permissions. All six native packaged-binary hosts
+verify and run version/help/formats checks against those same assets. After CI
+succeeds, the publishing job downloads the same current-run `ci-release-assets`
+artifact; it does not rebuild the archives. It validates the exact eight assets,
+manifest and checksums and rechecks the immutable tag object before creating a
+draft prerelease. Only the publisher has `contents:write`, and it does not
+execute checked-out project/artifact code. No release is created just by merging
+a PR or pushing a tag. Review the current workflow's actual permissions and
+steps at the chosen commit when recording release-path evidence.
+
+Normal CI omits `source_version` and stamps `v0.0.0-ci.RUN_NUMBER`; local release
+candidates carry their chosen version. Their passes do not establish that a
+release-tag dispatch or upload ran. The tagged draft workflow still needs its
+own recorded execution and exact asset evidence. Native version/help/formats
+smoke checks are separate from packaged conversion/recovery journeys and
+provider-native acceptance.
 
 An existing release is rejected instead of overwritten. Failed uploads can
 leave a partial draft; inspect workflow logs and assets before retrying.
@@ -164,7 +177,10 @@ archive needs runtime evidence on its corresponding native target.
 
 Public conversion, recovery key creation/save and recovery writes are enabled
 on Linux, macOS and Windows. Native macOS ACL/volume and Windows DACL/volume
-qualification passed on both architectures; public macOS journeys passed,
-and fresh public Windows journeys remain required after enablement. Provider acceptance, encrypted-export
+qualification and public CLI journeys passed on both architectures. The
+documented Windows PowerShell setup passed on both architectures under the CI
+runner account; standard-user writer qualification is separate. See the
+[native output evidence](agentic/native-output-journey.md#evidence-and-enablement)
+and acceptance ledger for the exact commits/runs. Provider acceptance, encrypted-export
 interoperability, recovery interoperability and working authentication are
 independent checks. Record unsupported/missing checks as gaps, not passes.

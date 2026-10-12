@@ -85,20 +85,16 @@ and verify pins, require unchanged module files, then test/build offline.
 
 ## Next executable steps
 
-1. Complete current ordinary-user documentation and release-workflow archive
-   continuity reviews. Provider duplicate/empty-container corrections and all existing synthetic kit, packaged
-   helper, dependency-pin and exact-output guard reviews are complete. Public
-   writers and their native setup/journeys passed on all six targets.
-2. Commit explicit owned paths, pin packaged documentation to a reviewed public
+1. Pin packaged documentation to a reviewed public
    source snapshot, then package all six targets from the clean exact commit
    with a fresh candidate version. Verify every member/header/metadata/checksum,
    prepare both private synthetic kits with the stamped Linux binary, and obtain
    fresh exact-head hosted CI. PR #5 and the resulting artifact metadata carry
    post-build evidence; this ledger is a pre-build documentation snapshot.
-3. Run the concrete synthetic provider qualification procedure with the user;
+2. Run the concrete synthetic provider qualification procedure with the user;
    record provider/version/platform/case outcomes. Continue independent work
    while awaiting results; never receive real vault files or credentials.
-4. Resolve delivery authenticity/provenance policy. Only a fully qualified candidate can be called 1.0
+3. Resolve delivery authenticity/provenance policy. Only a fully qualified candidate can be called 1.0
    ready; publication remains the maintainer's deliberate action.
 
 ## Initial clean candidate and hosted evidence
@@ -368,3 +364,33 @@ correction must natively check the requested tag version and carry the same
 checked archive set to publishing, preserving the guarded publisher boundary.
 It remains un-dispatched; native smoke means version/help/formats, separately
 from source-built public CLI conversion/recovery and actual provider acceptance.
+
+## Final documentation and release archive continuity reviewed
+
+Ordinary-user instructions now coherently prepare separate output/key/restore
+parents on each platform, verify a chosen archive rather than require the whole
+download set, describe the exact provider/browser duplicate predicates, and
+distinguish current implementation from historical dependency research.
+Source-built public CLI journeys, actual packaged version/help/formats smoke,
+CI-runner PowerShell setup and the separate standard-user writer have precise
+evidence labels. Independent seven-document review, real synthetic Linux
+conversion/key/recovery/raw-byte/permission/checksum journeys, local links,
+shell syntax and unchanged native recipe fences pass.
+
+Reusable CI now accepts an optional strictly packager-validated source version;
+the draft workflow supplies its already validated tag. It builds the six
+archives once, runs their version/help/formats on all six native hosts, then
+the guarded publisher downloads that same current-run artifact after the full
+check job succeeds. The separate rebuild is removed. Same-run artifact identity,
+matrix completion, environment-only version handling, publisher-only write
+permission and all tag/object/eight-asset/draft guards pass independent and
+adversarial review. Ten actual inline guard tests, releasepack behavioral
+version/pre-write/cache/archive tests, YAML and sixteen shell syntax checks
+pass. This is source/local evidence; no tagged workflow or upload ran.
+
+Provider corrections, documentation and pipeline reviews are complete. Final
+clean-source candidate assets, immutable README links and fresh exact-head CI
+are the remaining autonomous preparation steps. Actual disposable provider
+imports/re-exports/native encrypted/browser source exports/SSH authentication
+and the user's delivery authenticity policy remain open external gates. The
+user was asked for those inputs; no reply or approval is inferred from waiting.
