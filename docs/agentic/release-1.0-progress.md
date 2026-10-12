@@ -394,3 +394,28 @@ are the remaining autonomous preparation steps. Actual disposable provider
 imports/re-exports/native encrypted/browser source exports/SSH authentication
 and the user's delivery authenticity policy remain open external gates. The
 user was asked for those inputs; no reply or approval is inferred from waiting.
+
+## Maintainer qualification and signing decisions
+
+On 2026-10-12 (America/New_York), the user confirmed they can test disposable
+Bitwarden, 1Password and Proton Pass vaults, and selected cryptographically
+signed release files for 1.0. Provider tests remain NOT RUN until actual
+observations arrive. The [first seven-item Bitwarden pilot](provider-pilot.md)
+uses the existing rc.2 1PUX→Bitwarden synthetic artifact, separate local exact
+expectations and the supplied re-export comparison procedure.
+
+The signature mechanism/maintainer identity is not yet provisioned. Existing
+GnuPG 2.4.7 and OpenSSH tools are available; managed-runtime readiness metadata
+reports no configured secrets or outbound signing identity. No private key
+contents were inspected, and no new tools or dependencies were installed.
+OpenPGP checksum-manifest signatures and GitHub workflow-bound keyless signing
+are possible approaches; neither is established by this policy decision alone.
+Existing unsigned rc.2 assets do not satisfy the selected final distribution
+policy. No signature, notarization, tag, merge or release action has occurred.
+
+The user subsequently deferred signing setup and explicitly requested an issue.
+[Issue #6](https://github.com/akvartz/Bitwarden21Password/issues/6) now tracks
+mechanism/identity selection, signature generation/verification of the exact
+checked archives, guarded publication, consumer instructions and evidence.
+The signed-release requirement remains recorded; no unsigned-release approval
+is inferred. Native provider qualification continues independently.

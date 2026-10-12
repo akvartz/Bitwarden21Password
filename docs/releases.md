@@ -158,12 +158,23 @@ Do not claim a release was published from successful local packaging.
 
 ## Authenticity and verification boundaries
 
+The maintainer selected **cryptographically signed release files** for 1.0 on
+2026-10-12 (America/New_York). Final distribution must bind all six archives and
+their manifest/checksums to a documented signer identity, and verify those
+signatures before publication. A signed checksum manifest can cover the whole
+set; a workflow-bound keyless signature is another possible mechanism. The
+mechanism and trust anchor still need to be selected and exercised. Setup is
+deferred at the maintainer's request and tracked in
+[issue #6](https://github.com/akvartz/Bitwarden21Password/issues/6). This
+decision does not require macOS notarization or platform executable signing.
+
 The existing archive/manifest/checksum path is unsigned. Signing, macOS
 notarization and independently reproduced builds are not established. Checksums
 and BUILD-INFO identify bytes/source; they do not authenticate a publisher.
-For stable promotion, explicitly resolve and record the signing/provenance
-policy. If unsigned distribution is accepted, say so in release notes; do not
-imply code signing or notarization. Any added CI build attestation needs its
+The existing rc.2 artifacts are unsigned historical test candidates and do not
+meet the selected 1.0 distribution policy. Until signing and verification are
+implemented and their actual evidence is recorded, stable promotion is blocked.
+Any added CI build attestation needs its
 own recorded generation and verification evidence; it is separate from binary
 signing, provider certification and independent reproducibility.
 
