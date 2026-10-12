@@ -1,4 +1,4 @@
-// Package migration inventories exports and plans mappings without emitting vault data.
+// Package migration inventories exports and protects reviewed output without exposing vault data in reports.
 package migration
 
 import (
@@ -21,12 +21,13 @@ const (
 
 // Document owns source bytes and parsed values. Only redacted reports leave this type.
 type Document struct {
-	source        []byte
-	format        Format
-	chromeHeaders []string
-	chromeRows    [][]string
-	bitwardenRoot map[string]any
-	inventory     Inventory
+	source                []byte
+	format                Format
+	chromeHeaders         []string
+	chromeOriginalHeaders []string
+	chromeRows            [][]string
+	bitwardenRoot         map[string]any
+	inventory             Inventory
 }
 
 // Parse copies the source and rejects the whole input if it violates a limit or schema.

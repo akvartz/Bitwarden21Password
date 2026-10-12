@@ -14,6 +14,7 @@ func (d *Document) parseChrome() error {
 	if err != nil {
 		return err
 	}
+	d.chromeOriginalHeaders = append([]string{}, headers...)
 	d.chromeHeaders = make([]string, len(headers))
 	seen := make(map[string]bool, len(headers))
 	for i, header := range headers {

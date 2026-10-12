@@ -1,7 +1,8 @@
-// Package cli exposes the read-only M1 commands with redacted reports and errors.
+// Package cli exposes redacted inspection, planning and protected conversion.
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -29,31 +30,47 @@ type failure struct {
 
 func (e *failure) Error() string { return e.code }
 
-const helpText = `pwmigrate-go: read-only export inspection and planning
+const helpText = `pwmigrate-go: local export inspection, planning and experimental conversion
 
 pwmigrate-go inspect --input PATH [--from chrome-csv|bitwarden-json] [--json]
 pwmigrate-go plan --input PATH [--from chrome-csv] --to bitwarden-json [--select 1,3] [--json]
+pwmigrate-go convert --input PATH [--from chrome-csv] --to bitwarden-json --output-dir DIRECTORY [--select 1,3] [--json]
 pwmigrate-go formats [--json]
 pwmigrate-go help
 
 Format IDs are exact. Selection uses positive, unique one-based record ordinals.
 Plans emit no vault output and do not verify destination imports.
+Conversion requires explicit review in the same process and private Linux output.
+Generated exports are plaintext; destination provider acceptance is unverified.
 `
 
-// Run returns 0 for success/help, 2 for argument errors, 3 for invalid or
-// unsupported input/selection/routes, and 1 for input or report I/O failures.
+// Run retains the process-input entry point for existing callers.
 func Run(args []string, stdout, stderr io.Writer) int {
-	return run(args, stdout, stderr, openInput)
+	return RunContext(context.Background(), args, os.Stdin, stdout, stderr)
 }
 
+// RunContext returns 0 for success/help, 2 for argument errors, 3 for rejected
+// input/approval/state/platform, and 1 for I/O, validation or cancellation.
+// Context cancellation applies to convert; read-only commands do not use it.
+// The caller retains ownership of stdin, including unblocking a generic reader
+// after cancellation. Each conversion starts at most one bounded read goroutine.
+func RunContext(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
+	return runContext(ctx, args, stdin, stdout, stderr, openInput)
+}
+
+// run preserves the existing injectable opener for read-only loader tests.
 func run(args []string, stdout, stderr io.Writer, open fileOpener) int {
+	return runContext(context.Background(), args, os.Stdin, stdout, stderr, open)
+}
+
+func runContext(ctx context.Context, args []string, stdin io.Reader, stdout, stderr io.Writer, open fileOpener) int {
 	output := checkedWriter{stdout}
 	if len(args) == 0 || (len(args) == 1 && (args[0] == "help" || args[0] == "--help" || args[0] == "-h")) {
 		_, err := io.WriteString(output, helpText)
 		return finishReport(err, stderr)
 	}
 	command := args[0]
-	if command != "inspect" && command != "plan" && command != "formats" {
+	if command != "inspect" && command != "plan" && command != "convert" && command != "formats" {
 		return reportError(stderr, &failure{"invalid_arguments", 2})
 	}
 
@@ -61,14 +78,17 @@ func run(args []string, stdout, stderr io.Writer, open fileOpener) int {
 	// flag's diagnostics contain user tokens and values. Only our safe codes leave.
 	options.SetOutput(io.Discard)
 	asJSON := options.Bool("json", false, "render JSON report")
-	var input, source, target, selected string
+	var input, source, target, selected, parent string
 	if command != "formats" {
 		options.StringVar(&input, "input", "", "input export")
 		options.StringVar(&source, "from", "", "source format")
 	}
-	if command == "plan" {
+	if command == "plan" || command == "convert" {
 		options.StringVar(&target, "to", "", "target format")
 		options.StringVar(&selected, "select", "", "record ordinals")
+	}
+	if command == "convert" {
+		options.StringVar(&parent, "output-dir", "", "existing private output parent")
 	}
 	if err := options.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -83,13 +103,13 @@ func run(args []string, stdout, stderr io.Writer, open fileOpener) int {
 	if command == "formats" {
 		return finishReport(renderFormats(output, *asJSON), stderr)
 	}
-	if input == "" || (command == "plan" && target == "") {
+	if input == "" || ((command == "plan" || command == "convert") && target == "") || (command == "convert" && parent == "") {
 		return reportError(stderr, &failure{"invalid_arguments", 2})
 	}
 	if source != "" && source != string(migration.ChromeCSV) && source != string(migration.BitwardenJSON) {
 		return reportError(stderr, &migration.SafeError{Code: "unknown_format"})
 	}
-	if command == "plan" && target != string(migration.BitwardenJSON) {
+	if (command == "plan" || command == "convert") && target != string(migration.BitwardenJSON) {
 		return reportError(stderr, &migration.SafeError{Code: "unsupported_route"})
 	}
 	var selection []int
@@ -105,6 +125,10 @@ func run(args []string, stdout, stderr io.Writer, open fileOpener) int {
 		if err != nil {
 			return reportError(stderr, err)
 		}
+	}
+
+	if command == "convert" {
+		return runConvert(ctx, conversionOptions{input, migration.Format(source), migration.Format(target), selection, parent, *asJSON}, stdin, output, stderr, open)
 	}
 
 	data, err := readInput(input, open)
@@ -215,6 +239,11 @@ func reportError(stderr io.Writer, err error) int {
 	switch {
 	case errors.As(err, &inputErr):
 		message = inputErr.Error()
+		switch inputErr.Code {
+		case "output_parent", "output_create", "output_write", "output_sync",
+			"output_readback", "output_close", "output_publish", "output_cancelled", "output_validation":
+			exit = 1
+		}
 	case errors.As(err, &ioErr):
 		message, exit = ioErr.code, ioErr.exit
 	}
@@ -248,7 +277,7 @@ func renderFormats(writer io.Writer, asJSON bool) error {
 		}
 		return renderJSON(writer, report)
 	}
-	_, err := io.WriteString(writer, "chrome-csv: inspect; plan to bitwarden-json\nbitwarden-json: inspect\nM1: read-only; no vault output or destination import verification\n")
+	_, err := io.WriteString(writer, "chrome-csv: inspect; plan to bitwarden-json; experimental convert to bitwarden-json on Linux with explicit approval\nbitwarden-json: inspect\nOther platforms: read-only. Destination imports unverified.\n")
 	return err
 }
 

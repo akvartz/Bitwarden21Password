@@ -202,7 +202,12 @@ func TestFormatsExposeOnlyM1Capabilities(t *testing.T) {
 	}
 	code, stdout, stderr = invoke("formats")
 	if code != 0 || stderr != "" || !strings.Contains(stdout, "chrome-csv") || !strings.Contains(stdout, "bitwarden-json") || strings.Contains(stdout, "1password") {
-		t.Fatal("human formats must describe exactly M1 support")
+		t.Fatal("human formats must describe the supported routes")
+	}
+	for _, term := range []string{"experimental convert to bitwarden-json on Linux", "explicit approval", "Other platforms: read-only", "Destination imports unverified"} {
+		if !strings.Contains(stdout, term) {
+			t.Fatalf("human formats omitted capability or limitation %q", term)
+		}
 	}
 }
 
