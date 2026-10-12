@@ -1,6 +1,6 @@
 # Go migration status
 
-The experimental M2 Linux protected-export slice is implemented. Full M2 provider/platform qualification and the desktop converter remain incomplete. The current route is Chrome CSV to unencrypted Bitwarden JSON, intended for synthetic evaluation.
+The experimental M2 Linux protected-export slice is implemented and published as [PR #3](https://github.com/akvartz/Bitwarden21Password/pull/3), open and unmerged. Full M2 provider/platform qualification and the desktop converter remain incomplete. The current route is Chrome CSV to unencrypted Bitwarden JSON, intended for synthetic evaluation.
 
 Designs: [overall migration](../superpowers/specs/2026-10-11-go-migration-design.md) and [protected export](../superpowers/specs/2026-10-11-protected-export.md). Plans: [M1](../superpowers/plans/2026-10-11-go-foundation.md) and [M2 slice](../superpowers/plans/2026-10-11-protected-export.md).
 
@@ -21,12 +21,12 @@ Installed toolchain: Go 1.26.0 linux/amd64. Commands used GOTOOLCHAIN=local GOPR
 - Approval tests cover missing/extra/duplicate issue IDs, cross-job review IDs, mutation, copied handles, replay, concurrent commit and terminal failures. Output byte/JSON-container budgets reject amplification before filesystem writes.
 - Native Linux filesystem tests cover effective permissions, collisions, existing source/sibling/link preservation, anchored directory renames and cancellation. Injected write, short-write, sync, readback, close, link and removal failures exercise empty-result behavior. Injection is separate from native filesystem evidence. A foreign-owner negative fixture requires chown privileges and was skipped on this non-root host.
 - Actual binary tests cover successful/rejected conversions, EOF/read boundaries, closed pipes, SIGINT/SIGTERM during approval and read-only signal termination. Synthetic source/sibling contents, size, mode and mtime are checked; reading may change atime.
-- Final integrated `go test -race ./...` passed after both CLI signal fixes (CLI 4.316s; unchanged migration/protectedoutput results cached). `go vet ./...` passed. Package tests and focused RED/GREEN checks also passed. Formatting and Git whitespace checks are clean.
+- Final integrated `go test -race ./...` passed after both CLI signal fixes (CLI 4.316s; unchanged migration/protectedoutput results cached). `go vet ./...` passed. Package tests and focused RED/GREEN checks also passed. Formatting and Git whitespace checks are clean. The later human formats wording correction passed its focused RED/GREEN check, independent focused test and full CLI package test (0.779s); unchanged race/vet/cross-build checks were not repeated for that text-only correction.
 - Final CGO_ENABLED=0 `go build -trimpath ./cmd/pwmigrate` passed for linux/amd64, windows/amd64, darwin/amd64 and darwin/arm64. These are compilation checks, not native non-Linux tests or release artifacts.
 
 ## Review and implementation decisions
 
-The writer and migration engine have independent spec/quality review and adversarial review with no remaining findings. The CLI's valid-final-newline-plus-EOF case was fixed and independently re-reviewed. Two adversarial findings were reproduced and fixed: cancellation inside completion reporting must return failure, and conversion signal handling must not swallow read-only command signals. Independent and adversarial scoped re-reviews passed with no remaining findings. Final whole-branch review is pending.
+The writer and migration engine have independent spec/quality review and adversarial review with no remaining findings. The CLI's valid-final-newline-plus-EOF case was fixed and independently re-reviewed. Two adversarial findings were reproduced and fixed: cancellation inside completion reporting must return failure, and conversion signal handling must not swallow read-only command signals. Independent and adversarial scoped re-reviews passed with no remaining findings. Fresh whole-branch review of e99b08f through e41b1e6 found no blocking or should-fix issues. Its one wording nit (formats still described M1 as read-only) was corrected in a3cf1e6 and independently re-reviewed. There are no remaining review findings in this slice.
 
 The bounded implementation deliberately uses in-memory approval; a durable automation protocol is later work. Linux alone enables output until platform privacy evidence exists. Failed jobs retain private artifacts to avoid unsafe cleanup. A source-independent random review ID binds approval without exposing a source fingerprint.
 
@@ -34,11 +34,11 @@ Native worktree creation could not target this repository from the chat workspac
 
 ## Publication
 
-Local M2 starts at M1 commit e99b08fe10860d8afb5611ed2c0273e1d0e9d570. Writer commit: 374ca61. Engine commit: fa4714a. CLI commit: bf90906. Documentation integration, final review and M2 PR publication are pending. The security-sensitive PR must remain unmerged.
+Local M2 starts at M1 commit e99b08fe10860d8afb5611ed2c0273e1d0e9d570. Writer commit: 374ca61. Engine commit: fa4714a. CLI commit: bf90906. Final reviewed source commit: a3cf1e6fc5d594d651032d3894bb48c0e3f2ce8c. Later changes only close out this documentation and plan. The security-sensitive PR must remain unmerged.
 
-M1 was published through the authenticated GitHub Git-data connector after shell SSH/HTTPS transport failed on this host. Its remote head cd90d9fb881d6ac59e2c581787705ca4f872df40 and local M1 head have the same tree ffde1f58ecf629a72dcda4f1da26c55427831242, but different commit identities. Preserve both histories. M2 publication must recheck live PR #2, use its branch as the base while unmerged, and compare the exact reviewed local tree with the API-created remote tree before moving a ref. Do not force-push, rewrite history or change system SSH configuration.
+M1 was published through the authenticated GitHub Git-data connector after shell SSH/HTTPS transport failed on this host. Its remote head cd90d9fb881d6ac59e2c581787705ca4f872df40 and local M1 head have the same tree ffde1f58ecf629a72dcda4f1da26c55427831242, but different commit identities. Preserve both histories. M2 publication rechecked live PR #2 and used its unchanged branch as the base. Initial remote M2 commit 1348115fda41e1bc5c816e853862ae11ae9a3655 has exactly the reviewed local source tree 9e3993c36ef51ec424a1febc5f4cf37d3faf3124. The documentation closeout uses the same exact-tree comparison and a non-forced update with an expected-head lease. PR #3 is attached to the task. Before future publication, inspect the live PR head and preserve the mapping between local and remote histories. Do not force-push, rewrite history or change system SSH configuration.
 
-At M1 publication no commit statuses, pull-request workflow runs or submitted GitHub reviews were returned. This was not a CI pass or GitHub approval. Check M2's exact published head separately; local independent reviews are distinct from GitHub reviews.
+At initial M2 publication, exact-head queries returned no commit statuses, pull-request workflow runs or submitted GitHub reviews. These missing results are not a CI pass or GitHub approval. Recheck the final documentation head after updating the branch; local independent and adversarial reviews are distinct from GitHub reviews. The local ignored task ledger records final publication SHAs and checks.
 
 ## Remaining qualification and next work
 
