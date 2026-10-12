@@ -28,6 +28,8 @@ import (
 
 const windowsRecipeDocumentLimit = 64 << 10
 const windowsRecipeOutputLimit = 16 << 10
+const windowsRecipeColdTimeout = 3 * time.Minute
+const windowsRecipeWarmTimeout = 30 * time.Second
 
 // This executes the current user's built-in PowerShell recipe. It does not
 // assert that an administrative runner has become a standard-user actor.
@@ -169,7 +171,14 @@ func windowsRunDocumentedRecipe(t *testing.T, body, base string, success bool) {
 	for index, unit := range units {
 		binary.LittleEndian.PutUint16(encoded[2*index:], unit)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	// The first inbox PowerShell/.NET launch can initialize cold assemblies on
+	// ARM64 runners while other test packages build. Keep that bounded startup
+	// budget separate from the warm repeat that must promptly refuse clobbering.
+	budget := windowsRecipeWarmTimeout
+	if success {
+		budget = windowsRecipeColdTimeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
 	command := exec.CommandContext(ctx, program, "-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", base64.StdEncoding.EncodeToString(encoded))
 	command.Dir = base
@@ -187,7 +196,10 @@ func windowsRunDocumentedRecipe(t *testing.T, body, base string, success bool) {
 	// No profile, script file, raw report, SID or diagnostic leaves this test.
 	runErr := command.Run()
 	if ctx.Err() != nil || output.bytes.Load() > windowsRecipeOutputLimit {
-		t.Fatal("documented recipe process bound exceeded")
+		if success {
+			t.Fatal("documented recipe process bound exceeded phase 1")
+		}
+		t.Fatal("documented recipe process bound exceeded phase 2")
 	}
 	if success {
 		if runErr != nil {

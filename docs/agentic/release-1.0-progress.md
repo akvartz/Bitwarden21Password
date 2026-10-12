@@ -303,3 +303,29 @@ gap: provider preflight retains identical records but does not flag duplicates.
 Browser grouping and multiset comparison are correct. Provider inventory and
 selected-plan duplicate grouping must be completed and reviewed before the
 final candidate; this is not an external qualification gate.
+
+## Public Windows journeys and PowerShell process bound
+
+[CI 38225656989](https://github.com/akvartz/Bitwarden21Password/actions/runs/38225656989)
+at exact `0ab4994537c46cef8e26bd44e36e8db29c214537` passed thirteen of fourteen
+jobs, including all six actual packaged binaries. Both Windows public provider
+and CLI conversion/approval/key/recovery packages passed. Windows amd64 also
+passed the exact documented PowerShell recipe and all native privacy gates.
+Windows arm64's first PowerShell invocation exceeded its 30-second process
+bound, so that job failed and its later privacy step did not execute. This is
+not a successful exact-head native run.
+
+The scoped test correction permits a bounded 180-second first inbox
+PowerShell/.NET launch and retains a 30-second rerun-refusal budget and one-second
+pipe wait bound. Cold startup under concurrent package builds is a hypothesis,
+not a diagnosed provider or ACL defect. Every exact-script success, independent
+ACL, public-byte and no-clobber assertion remains mandatory; there is no skip or
+retry. Fixed phase diagnostics distinguish first launch from rerun without
+publishing child output. Both Windows cross-builds/vet pass; separate reviews
+pass independently and adversarially. A fresh native run must establish actual
+arm64 success.
+
+The same acceptance audit reproduced a second bounded accounting gap: an empty
+Bitwarden root `items` array is excluded from metadata. It must count as an
+empty-container field and receive a disposition, while nonempty records remain
+record fields only. This correction is being completed with provider grouping.
