@@ -132,7 +132,9 @@ func buildSyntheticCLI(t *testing.T) string {
 	if runtime.GOOS == "windows" {
 		binary += ".exe"
 	}
-	build := exec.Command("go", "build", "-o", binary, "../../cmd/pwmigrate")
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	build := exec.CommandContext(ctx, "go", "build", "-o", binary, "../../cmd/pwmigrate")
 	build.Env = append(os.Environ(), "GOTOOLCHAIN=local", "GOPROXY=off")
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build actual CLI: %v\n%s", err, output)

@@ -6,7 +6,11 @@ Tags, publication and security-sensitive merges remain maintainer actions.
 
 Canonical base: `7777ae112f787b8d6e1ddbc00b24f0496733501b`, independently checked
 against ordinary Git fetch and live PR #4 merged state. Work is on
-`feat/1.0-release`, preserving earlier histories. This ledger substitutes for a
+`feat/1.0-release`, preserving earlier histories. Initial reviewed candidate
+commit `e4cfedf6e33d601e036a8c8b5c67cae9bca182ae`, tree
+`2623d903813019330050f17b1e30ead9e8e80416`, was pushed through ordinary
+Git without rewriting history and is attached as unmerged draft
+[PR #5](https://github.com/akvartz/Bitwarden21Password/pull/5). This ledger substitutes for a
 native goal API, which is unavailable. The referenced personal working agreement
 is absent; AGENTS.md, accepted design and the handoff govern this session.
 Local primary-source research scratch is excluded from Git and build inputs.
@@ -75,8 +79,9 @@ and verify pins, require unchanged module files, then test/build offline.
   source review found and corrected a native API call and fixture ownership/
   cleanup premises; cross-compilation never substitutes for executing them.
 - Actual provider imports, native app-created encrypted exports, SSH agent
-  authentication, foreign-platform archive runtime smoke, signing and public
-  release promotion are NOT RUN. Checklists do not substitute for results.
+  authentication, signing and public release promotion are NOT RUN.
+  Foreign-platform archive runtime smoke passed in the initial hosted run
+  recorded below. Checklists do not substitute for results.
 
 ## Next executable steps
 
@@ -100,3 +105,49 @@ and verify pins, require unchanged module files, then test/build offline.
 5. Resolve delivery authenticity/provenance policy and record remaining native
    architecture evidence. Only a fully qualified candidate can be called 1.0
    ready; publication remains the maintainer's deliberate action.
+
+## Initial clean candidate and hosted evidence
+
+Clean `e4cfedf` built all six `v1.0.0-rc.1` archives with Go 1.26.9. The
+complete set passed the native archive helper on Linux amd64 and the actual
+publishing workflow's eight-asset/manifest/checksum validator without dispatch.
+Each archive contains the executable, README, project license, dependency
+notices and exact BUILD-INFO. No tag or release exists. Preserved artifacts:
+`/workspace/artifacts/pwmigrate/pwmigrate-release-1.0.0-rc.1-e4cfedf`.
+
+[Initial hosted CI 38211874470](https://github.com/akvartz/Bitwarden21Password/actions/runs/38211874470)
+ran against that exact commit. Linux amd64/arm64 tests, vet and source smoke,
+Linux race/root/helper guards, six-platform packaging, and **all six actual
+packaged native binary** checks passed. Public macOS/Windows writing remained
+disabled. Native qualification exposed concrete failures being corrected:
+
+- Intel macOS's cold linker-metadata test build exceeded its old 60-second
+  deadline; compilation and runtime deadlines are being separated.
+- ARM macOS passed ordinary candidate tests and APFS/HFS/second-principal/
+  foreign-owner probes, but its FAT fixture was not writable by the caller.
+- Both Windows architectures passed ordinary candidate tests and negative
+  privacy probes, but the standard-user child probe failed and the owned FAT
+  VHD could not be detached during cleanup. Fixed child diagnostics and exact
+  native cleanup will identify/correct the boundary before public enablement.
+
+These failures are not passes or a reason to skip qualification. Candidate
+routing stays disabled until the corrected non-skipping privacy gates pass,
+then public conversion/recovery journeys must pass on a fresh exact commit.
+The user has been asked for available disposable provider testing and the
+required signing/authenticity policy; no answer or approval is inferred.
+
+The next reviewed test-only correction separates a 180-second cold compilation
+budget from the five-second version runtime budget, makes the macOS FAT fixture
+writable with an independently checked ordinary-user positive control, and
+uses owned-image native Windows VHD detachment with scoped, checked privilege.
+Windows child diagnostics expose only a fixed phase enum and still require a
+successful child exit plus the complete marker. Independent and adversarial
+source reviews, focused Linux race tests, and four-target cross-build/vet pass;
+only the next actual native run can establish whether those fixtures pass.
+
+Test-only private-parent fixtures and six provider job/three CLI target journeys
+are ready to execute through the public APIs after platform enablement. Windows
+parents receive an explicit protected user/SYSTEM DACL at creation, then an
+independent handle readback. Public Darwin/Windows writing remains disabled.
+The ordinary-user parent recipe is in native-output-journey.md; its Windows
+PowerShell recipe has source review but has not been executed natively.

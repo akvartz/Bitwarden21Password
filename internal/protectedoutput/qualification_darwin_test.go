@@ -182,7 +182,14 @@ func TestDarwinNativeQualificationVolumes(t *testing.T) {
 			mounted := false
 			attach := func(readonly bool) {
 				t.Helper()
-				args := []string{"attach", "-nobrowse", "-owners", "on", "-mountpoint", mount}
+				owners := "on"
+				if fs == "MS-DOS FAT32" {
+					// FAT cannot store per-file Unix ownership. Enforcing image
+					// root ownership makes a writable volume inaccessible to the
+					// ordinary caller instead of establishing the intended fixture.
+					owners = "off"
+				}
+				args := []string{"attach", "-nobrowse", "-owners", owners, "-mountpoint", mount}
 				if readonly {
 					args = append(args, "-readonly")
 				}
@@ -210,8 +217,17 @@ func TestDarwinNativeQualificationVolumes(t *testing.T) {
 			}
 			if fs == "MS-DOS FAT32" {
 				// FAT is rejected by filesystem type, independently of whatever
-				// ownership mount flag hdiutil establishes with -owners on.
+				// ownership mount flag hdiutil establishes. An ordinary-caller
+				// write/read/delete control proves the image is actually writable.
 				darwinQualificationVolumePremise(t, parent, "msdos", false, false)
+				control := filepath.Join(parent, "synthetic-control.txt")
+				if os.WriteFile(control, []byte("synthetic control"), 0600) != nil {
+					t.Fatal("native unsupported-volume write control failed")
+				}
+				value, err := os.ReadFile(control)
+				if err != nil || !bytes.Equal(value, []byte("synthetic control")) || os.Remove(control) != nil {
+					t.Fatal("native unsupported-volume read/delete control failed")
+				}
 				result, err := writeDarwinCandidate(context.Background(), parent, []byte("synthetic"))
 				requireFailure(t, result, err, "output_parent")
 				assertEmpty(t, parent)

@@ -18,6 +18,7 @@ import (
 
 	"github.com/akvartz/Bitwarden21Password/internal/migration"
 	"github.com/akvartz/Bitwarden21Password/internal/protectedoutput"
+	"github.com/akvartz/Bitwarden21Password/internal/testsupport"
 )
 
 type observedIssue struct {
@@ -88,17 +89,13 @@ func convertArgs(source, parent string) []string {
 
 func privateOutputParent(t *testing.T) string {
 	t.Helper()
-	parent := t.TempDir()
-	if err := os.Chmod(parent, 0700); err != nil {
-		t.Fatal(err)
-	}
-	return parent
+	return testsupport.PrivateParent(t)
 }
 
 func requireLinuxOutput(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS != "linux" {
-		t.Skip("native protected output is Linux-only")
+	if !protectedoutput.Supported() {
+		t.Skip("public protected output is not qualified on this platform")
 	}
 }
 
@@ -175,12 +172,8 @@ func TestConvertJSONRequiresExactReviewAndPreservesSelection(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatal("selected export changed exact values, labels, order or duplicate multiplicity")
 	}
-	for path, mode := range map[string]os.FileMode{filepath.Dir(output): 0700, output: 0600} {
-		info, err := os.Stat(path)
-		if err != nil || info.Mode().Perm() != mode {
-			t.Fatal("completed output must have private effective modes")
-		}
-	}
+	testsupport.AssertPrivate(t, filepath.Dir(output), true)
+	testsupport.AssertPrivate(t, output, false)
 	assertRedacted(t, stdout.String()+stderr.String(), source, parent)
 }
 
@@ -366,6 +359,9 @@ func TestConvertInvalidArgumentsDoNotReadApproval(t *testing.T) {
 
 func TestConvertUnwritableParentFailsWithoutCompletion(t *testing.T) {
 	requireLinuxOutput(t)
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod-only denial is a Unix permission check")
+	}
 	if os.Geteuid() == 0 {
 		t.Skip("root can bypass directory write permissions")
 	}

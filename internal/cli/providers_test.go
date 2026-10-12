@@ -2,15 +2,20 @@ package cli
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/akvartz/Bitwarden21Password/internal/recovery"
+	"github.com/akvartz/Bitwarden21Password/internal/testsupport"
 )
 
 func cliArchiveFixture(t *testing.T, files map[string]string) string {
@@ -202,6 +207,8 @@ func TestRecoveryCommandsRoundTripExactWholeSourceWithoutReportingKey(t *testing
 		t.Fatal("key receipt missing fixed output identity")
 	}
 	keyPath := filepath.Join(parent, keyReceipt.JobDirectory, keyReceipt.FileName)
+	testsupport.AssertPrivate(t, filepath.Dir(keyPath), true)
+	testsupport.AssertPrivate(t, keyPath, false)
 	key, err := os.ReadFile(keyPath)
 	if err != nil {
 		t.Fatal(err)
@@ -234,6 +241,8 @@ func TestRecoveryCommandsRoundTripExactWholeSourceWithoutReportingKey(t *testing
 	if err != nil || string(got) != source {
 		t.Fatal("recovery changed original source bytes")
 	}
+	testsupport.AssertPrivate(t, filepath.Join(outputParent, receipt.JobDirectory), true)
+	testsupport.AssertPrivate(t, filepath.Join(outputParent, receipt.JobDirectory, receipt.FileName), false)
 	if strings.Contains(stdout+stderr, "exact secret") || strings.Contains(stdout+stderr, "AGE-SECRET-KEY") || strings.Contains(stdout+stderr, cipherPath) || strings.Contains(stdout+stderr, keyPath) {
 		t.Fatal("recovery reports leaked material")
 	}
@@ -377,5 +386,220 @@ func TestRecoverySavePreservesUnsupportedOriginalWithoutParsing(t *testing.T) {
 	}
 	if strings.Contains(stdout+stderr, "unsupported synthetic") || strings.Contains(stdout+stderr, "AGE-SECRET-KEY") || strings.Contains(stdout+stderr, input) || strings.Contains(stdout+stderr, keyPath) {
 		t.Fatal("recovery-save reported private contents or paths")
+	}
+}
+
+func TestBinaryProviderConversionAndRecoveryJourneys(t *testing.T) {
+	requireLinuxOutput(t)
+	binary := buildSyntheticCLI(t)
+	const original = "name,url,username,password\nSYNTHETIC_SELECTED,https://synthetic.invalid, user ,\" exact\r\nsecret \"\nSYNTHETIC_EXCLUDED,https://synthetic.invalid,other,second\n"
+	input := inputFixture(t, original)
+	keyParent := privateOutputParent(t)
+	keyReceipt := binaryArtifactCommand(t, binary, []string{"recovery-key", "--output-dir", keyParent, "--json"})
+	if keyReceipt.FileName != "recovery-key.txt" {
+		t.Fatal("binary key command returned an unexpected artifact")
+	}
+	keyPath := filepath.Join(keyParent, keyReceipt.JobDirectory, keyReceipt.FileName)
+	testsupport.AssertPrivate(t, filepath.Dir(keyPath), true)
+	testsupport.AssertPrivate(t, keyPath, false)
+	for _, target := range []struct{ format, name string }{{"bitwarden-json", "bitwarden.json"}, {"onepassword-1pux", "onepassword.1pux"}, {"proton-pass-zip", "proton-pass.zip"}} {
+		t.Run(target.format, func(t *testing.T) {
+			parent := privateOutputParent(t)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			args := []string{"convert", "--input", input, "--to", target.format, "--select", "1", "--output-dir", parent, "--recovery-key-file", keyPath, "--json"}
+			cmd := exec.CommandContext(ctx, binary, args...)
+			stdin, err := cmd.StdinPipe()
+			if err != nil {
+				t.Fatal("binary approval channel unavailable")
+			}
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				t.Fatal("binary review channel unavailable")
+			}
+			var stderr bytes.Buffer
+			cmd.Stderr = &stderr
+			if err := cmd.Start(); err != nil {
+				t.Fatal("binary conversion did not start")
+			}
+			reader := bufio.NewReader(stdout)
+			line, err := reader.ReadString('\n')
+			if err != nil {
+				_ = stdin.Close()
+				_ = cmd.Wait()
+				t.Fatal("binary conversion omitted review")
+			}
+			var review observedEvent
+			if json.Unmarshal([]byte(line), &review) != nil || review.Event != "review" || review.Review.Plan.SelectedRecords != 1 || review.Review.Plan.ExcludedRecords != 1 {
+				t.Fatal("binary review changed selected scope")
+			}
+			retention := false
+			for _, issue := range review.Review.Issues {
+				if issue.ID == "recovery-whole-source" {
+					retention = true
+				}
+			}
+			if !retention {
+				t.Fatal("binary review omitted whole-source retention acknowledgment")
+			}
+			if _, err := io.WriteString(stdin, protocolApproval(review.Review)); err != nil {
+				t.Fatal("binary exact acknowledgment failed")
+			}
+			_ = stdin.Close()
+			remaining, err := io.ReadAll(reader)
+			if err != nil {
+				t.Fatal("binary conversion completion unreadable")
+			}
+			if processExit(t, cmd.Wait()) != 0 || ctx.Err() != nil {
+				t.Fatal("binary conversion failed")
+			}
+			var completed struct {
+				Event   string `json:"event"`
+				Receipt struct {
+					JobDirectory         string `json:"job_directory"`
+					FileName             string `json:"file_name"`
+					RecoveryJobDirectory string `json:"recovery_job_directory"`
+					RecoveryFileName     string `json:"recovery_file_name"`
+					Plan                 struct {
+						Verified bool `json:"destination_import_verified"`
+					} `json:"plan"`
+				} `json:"receipt"`
+			}
+			if json.Unmarshal(bytes.TrimSpace(remaining), &completed) != nil || completed.Event != "completed" || completed.Receipt.FileName != target.name || completed.Receipt.RecoveryFileName != "recovery.age" || completed.Receipt.Plan.Verified {
+				t.Fatal("binary completion misrepresented local artifacts or provider evidence")
+			}
+			output := filepath.Join(parent, completed.Receipt.JobDirectory, completed.Receipt.FileName)
+			testsupport.AssertPrivate(t, filepath.Dir(output), true)
+			testsupport.AssertPrivate(t, output, false)
+			assertBinaryDestinationPassword(t, output, target.format, " exact\r\nsecret ")
+			recoveryPath := filepath.Join(parent, completed.Receipt.RecoveryJobDirectory, completed.Receipt.RecoveryFileName)
+			testsupport.AssertPrivate(t, filepath.Dir(recoveryPath), true)
+			testsupport.AssertPrivate(t, recoveryPath, false)
+			recoveryParent := privateOutputParent(t)
+			restored := binaryArtifactCommand(t, binary, []string{"recover", "--input", recoveryPath, "--key-file", keyPath, "--output-dir", recoveryParent, "--json"})
+			if restored.FileName != "source.csv" {
+				t.Fatal("binary recovery returned an unexpected source artifact")
+			}
+			restoredPath := filepath.Join(recoveryParent, restored.JobDirectory, restored.FileName)
+			got, err := os.ReadFile(restoredPath)
+			if err != nil || string(got) != original {
+				t.Fatal("binary recovery changed or excluded original source bytes")
+			}
+			testsupport.AssertPrivate(t, filepath.Dir(restoredPath), true)
+			testsupport.AssertPrivate(t, restoredPath, false)
+			assertRedacted(t, line+string(remaining)+stderr.String(), input, keyPath, parent)
+		})
+	}
+}
+
+func binaryArtifactCommand(t *testing.T, binary string, args []string) struct{ JobDirectory, FileName string } {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, binary, args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	if cmd.Run() != nil || ctx.Err() != nil || stderr.Len() != 0 {
+		t.Fatal("binary private artifact command failed")
+	}
+	var receipt struct {
+		JobDirectory string `json:"job_directory"`
+		FileName     string `json:"file_name"`
+	}
+	if json.Unmarshal(stdout.Bytes(), &receipt) != nil || receipt.JobDirectory == "" || receipt.FileName == "" || strings.Contains(stdout.String(), "AGE-SECRET-KEY") {
+		t.Fatal("binary artifact receipt was invalid or exposed a key")
+	}
+	return struct{ JobDirectory, FileName string }{receipt.JobDirectory, receipt.FileName}
+}
+
+func assertBinaryDestinationPassword(t *testing.T, path, format, expected string) {
+	t.Helper()
+	payload, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal("binary destination artifact unavailable")
+	}
+	if format != "bitwarden-json" {
+		archive, err := zip.NewReader(bytes.NewReader(payload), int64(len(payload)))
+		if err != nil {
+			t.Fatal("binary destination archive invalid")
+		}
+		name := "export.data"
+		if format == "proton-pass-zip" {
+			name = "Proton Pass/data.json"
+		}
+		present := false
+		for _, file := range archive.File {
+			if file.Name == name {
+				reader, err := file.Open()
+				if err != nil {
+					t.Fatal("binary native payload unavailable")
+				}
+				payload, err = io.ReadAll(reader)
+				closeErr := reader.Close()
+				if err != nil || closeErr != nil {
+					t.Fatal("binary native payload unreadable")
+				}
+				present = true
+			}
+		}
+		if !present {
+			t.Fatal("binary native archive entry omitted")
+		}
+	}
+	var root map[string]any
+	if json.Unmarshal(payload, &root) != nil {
+		t.Fatal("binary destination JSON invalid")
+	}
+	var items []any
+	switch format {
+	case "bitwarden-json":
+		items, _ = root["items"].([]any)
+	case "onepassword-1pux":
+		accounts, _ := root["accounts"].([]any)
+		if len(accounts) != 1 {
+			t.Fatal("binary native account shape invalid")
+		}
+		account, _ := accounts[0].(map[string]any)
+		vaults, _ := account["vaults"].([]any)
+		if len(vaults) != 1 {
+			t.Fatal("binary native vault shape invalid")
+		}
+		vault, _ := vaults[0].(map[string]any)
+		items, _ = vault["items"].([]any)
+	case "proton-pass-zip":
+		vaults, _ := root["vaults"].(map[string]any)
+		if len(vaults) != 1 {
+			t.Fatal("binary native vault shape invalid")
+		}
+		for _, raw := range vaults {
+			vault, _ := raw.(map[string]any)
+			items, _ = vault["items"].([]any)
+		}
+	}
+	if len(items) != 1 {
+		t.Fatal("binary destination changed selection multiplicity")
+	}
+	item, _ := items[0].(map[string]any)
+	var password any
+	switch format {
+	case "bitwarden-json":
+		login, _ := item["login"].(map[string]any)
+		password = login["password"]
+	case "proton-pass-zip":
+		data, _ := item["data"].(map[string]any)
+		content, _ := data["content"].(map[string]any)
+		password = content["password"]
+	case "onepassword-1pux":
+		details, _ := item["details"].(map[string]any)
+		fields, _ := details["loginFields"].([]any)
+		for _, raw := range fields {
+			field, _ := raw.(map[string]any)
+			if field["designation"] == "password" {
+				password = field["value"]
+			}
+		}
+	}
+	if password != expected {
+		t.Fatal("binary destination changed exact credential bytes")
 	}
 }

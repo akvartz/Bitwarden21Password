@@ -11,6 +11,7 @@ import (
 
 	"github.com/akvartz/Bitwarden21Password/internal/protectedoutput"
 	"github.com/akvartz/Bitwarden21Password/internal/recovery"
+	"github.com/akvartz/Bitwarden21Password/internal/testsupport"
 )
 
 func TestRecoveryJobRequiresWholeSourceAcknowledgmentAndRecoversExcludedRecords(t *testing.T) {
@@ -23,10 +24,7 @@ func TestRecoveryJobRequiresWholeSourceAcknowledgmentAndRecoversExcludedRecords(
 	if err != nil {
 		t.Fatal("identity generation")
 	}
-	parent := t.TempDir()
-	if os.Chmod(parent, 0700) != nil {
-		t.Fatal("parent privacy")
-	}
+	parent := testsupport.PrivateParent(t)
 	j, err := d.NewJobWithRecovery(BitwardenJSON, []int{1}, parent, identity)
 	if err != nil {
 		t.Fatal(err)
@@ -57,6 +55,10 @@ func TestRecoveryJobRequiresWholeSourceAcknowledgmentAndRecoversExcludedRecords(
 	if receipt.RecoveryFileName != "recovery.age" || receipt.RecoveryJobDirectory == "" {
 		t.Fatal("recovery completion missing")
 	}
+	testsupport.AssertPrivate(t, filepath.Join(parent, receipt.JobDirectory), true)
+	testsupport.AssertPrivate(t, filepath.Join(parent, receipt.JobDirectory, receipt.FileName), false)
+	testsupport.AssertPrivate(t, filepath.Join(parent, receipt.RecoveryJobDirectory), true)
+	testsupport.AssertPrivate(t, filepath.Join(parent, receipt.RecoveryJobDirectory, receipt.RecoveryFileName), false)
 	ciphertext, err := os.ReadFile(filepath.Join(parent, receipt.RecoveryJobDirectory, receipt.RecoveryFileName))
 	if err != nil {
 		t.Fatal("recovery output missing")

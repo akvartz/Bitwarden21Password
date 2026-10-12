@@ -40,6 +40,66 @@ type windowsQualificationUser struct {
 	sid      string
 }
 
+// Diagnostics cross the helper boundary only as fixed phase identifiers.
+// Neither its stdout/stderr nor arbitrary file contents are ever printed.
+func windowsQualificationHelperPhase(value string) string {
+	switch value {
+	case "identity", "private_parent", "writer", "artifact_privacy", "exact_bytes", "writer_cleanup", "foreign_parent", "foreign_dacl", "complete":
+		return value
+	}
+	return "process_start"
+}
+
+func windowsQualificationHelperProgress(t *testing.T, base string) func(string) {
+	t.Helper()
+	file, err := os.OpenFile(filepath.Join(base, "helper-phase.txt"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal("native helper fixed-diagnostic creation failed")
+	}
+	t.Cleanup(func() {
+		if file.Close() != nil {
+			t.Error("native helper fixed-diagnostic close failed")
+		}
+	})
+	return func(phase string) {
+		t.Helper()
+		if windowsQualificationHelperPhase(phase) != phase {
+			t.Fatal("native helper fixed-diagnostic phase was invalid")
+		}
+		if _, err := file.Seek(0, io.SeekStart); err != nil {
+			t.Fatal("native helper fixed-diagnostic seek failed")
+		}
+		if file.Truncate(0) != nil {
+			t.Fatal("native helper fixed-diagnostic truncation failed")
+		}
+		if _, err := io.WriteString(file, phase); err != nil {
+			t.Fatal("native helper fixed-diagnostic write failed")
+		}
+	}
+}
+
+func windowsQualificationReadHelperPhase(base string) string {
+	root, err := windowsOpenParent(base)
+	if err != nil {
+		return "process_start"
+	}
+	handle, openErr := windowsChild(root, "helper-phase.txt", false, false, syscall.GENERIC_READ, nil)
+	closeErr := syscall.CloseHandle(root)
+	if openErr != nil {
+		return "process_start"
+	}
+	file := os.NewFile(uintptr(handle), "native-helper-phase")
+	defer file.Close()
+	if closeErr != nil || !windowsDiskObject(handle, false) {
+		return "process_start"
+	}
+	value, err := io.ReadAll(io.LimitReader(file, 33))
+	if err != nil || len(value) > 32 {
+		return "process_start"
+	}
+	return windowsQualificationHelperPhase(string(value))
+}
+
 // The randomly generated temporary account password goes only to native API
 // pointers, never process arguments, environment, files, or test diagnostics.
 func windowsQualificationAccount(t *testing.T) windowsQualificationUser {
@@ -345,8 +405,15 @@ func TestWindowsNativeQualificationStandardUserWriter(t *testing.T) {
 		t.Fatal("native standard-user helper did not complete")
 	}
 	var code uint32
-	if windows.GetExitCodeProcess(process.Process, &code) != nil || code != 0 {
-		t.Fatal("native standard-user private writer qualification failed")
+	if windows.GetExitCodeProcess(process.Process, &code) != nil {
+		t.Fatal("native standard-user helper exit observation failed")
+	}
+	phase := windowsQualificationReadHelperPhase(base)
+	if code != 0 || phase != "complete" {
+		if code == 0xc0000142 {
+			phase = "process_initialization"
+		}
+		t.Fatalf("native standard-user helper failed at fixed phase %s", phase)
 	}
 	// The standard-user child leaves one empty fixture owned by that user,
 	// with a protected DACL granting only this process's user and SYSTEM.
@@ -375,6 +442,8 @@ func TestWindowsPrivacyQualificationHelper(t *testing.T) {
 	if base == "" {
 		t.Skip("standard-user fixture helper was not requested")
 	}
+	progress := windowsQualificationHelperProgress(t, base)
+	progress("identity")
 	identity, err := windowsCurrentUser()
 	token, tokenErr := windows.OpenCurrentProcessToken()
 	if tokenErr != nil {
@@ -384,16 +453,19 @@ func TestWindowsPrivacyQualificationHelper(t *testing.T) {
 	if err != nil || token.IsElevated() || (*windows.SID)(unsafe.Pointer(&identity[0])).String() != os.Getenv("PWMIGRATE_NATIVE_PRIVACY_HELPER_SID") {
 		t.Fatal("native helper was not running as the expected standard principal")
 	}
+	progress("private_parent")
 	parent := windowsQualificationPrivateParent(t, base, "standard-user-parent")
 	t.Cleanup(func() {
 		if os.RemoveAll(parent) != nil {
 			t.Error("native standard-user owned-directory cleanup failed")
 		}
 	})
+	progress("writer")
 	result, err := writeWindowsCandidate(context.Background(), parent, []byte("synthetic standard-user output"))
 	if err != nil {
 		t.Fatal("native standard-user candidate failed")
 	}
+	progress("artifact_privacy")
 	for _, entry := range []struct {
 		path string
 		dir  bool
@@ -407,15 +479,18 @@ func TestWindowsPrivacyQualificationHelper(t *testing.T) {
 			t.Fatal("native standard-user owner/DACL/volume qualification failed")
 		}
 	}
+	progress("exact_bytes")
 	got, err := os.ReadFile(filepath.Join(parent, result.JobDirectory, result.FileName))
 	if err != nil || !bytes.Equal(got, []byte("synthetic standard-user output")) {
 		t.Fatal("native standard-user output bytes changed")
 	}
 	// The helper owns its private subtree; clean it before the account token
 	// exits, since the administrator deliberately lacks a destination ACE.
+	progress("writer_cleanup")
 	if os.RemoveAll(parent) != nil {
 		t.Fatal("native standard-user owned-directory cleanup failed")
 	}
+	progress("foreign_parent")
 	foreign := windowsQualificationPrivateParent(t, base, "foreign-owner-parent")
 	transferred := false
 	t.Cleanup(func() {
@@ -423,6 +498,7 @@ func TestWindowsPrivacyQualificationHelper(t *testing.T) {
 			t.Error("native standard-user foreign-owner fixture cleanup failed")
 		}
 	})
+	progress("foreign_dacl")
 	handle, err := windowsOpenParent(foreign)
 	if err != nil {
 		t.Fatal("native foreign-owner DACL fixture open failed")
@@ -444,6 +520,7 @@ func TestWindowsPrivacyQualificationHelper(t *testing.T) {
 	if ok == 0 || closeErr != nil {
 		t.Fatal("native foreign-owner DACL publication failed")
 	}
+	progress("complete")
 }
 
 func windowsQualificationJunction(t *testing.T, link, target string) {
@@ -527,16 +604,7 @@ func windowsQualificationDiskpart(t *testing.T, scriptPath, script string) {
 	}
 }
 
-func windowsQualificationOwnedVolume(t *testing.T, image, root string) {
-	t.Helper()
-	// Bind the assigned letter to our exact new image before writing any
-	// fixture directory. Another device claiming the free letter cannot
-	// turn a failed diskpart assignment into a write on an unrelated volume.
-	rootName, _ := syscall.UTF16PtrFromString(root)
-	driveType, _, _ := getDriveType.Call(uintptr(unsafe.Pointer(rootName)))
-	if driveType != 3 {
-		t.Fatal("native unsupported-filesystem fixture was not a fixed drive")
-	}
+func windowsQualificationOpenImage(image string, access uintptr) (syscall.Handle, uintptr) {
 	var storage struct {
 		Device uint32
 		Vendor windows.GUID
@@ -549,14 +617,30 @@ func windowsQualificationOwnedVolume(t *testing.T, image, root string) {
 	var disk syscall.Handle
 	virtdisk := syscall.NewLazyDLL("virtdisk.dll")
 	status, _, _ := virtdisk.NewProc("OpenVirtualDisk").Call(uintptr(unsafe.Pointer(&storage)), uintptr(unsafe.Pointer(name)),
-		0x80000, 0, uintptr(unsafe.Pointer(&parameters)), uintptr(unsafe.Pointer(&disk))) // VIRTUAL_DISK_ACCESS_GET_INFO.
+		access, 0, uintptr(unsafe.Pointer(&parameters)), uintptr(unsafe.Pointer(&disk)))
 	runtime.KeepAlive(storage)
 	runtime.KeepAlive(parameters)
+	runtime.KeepAlive(name)
+	return disk, status
+}
+
+func windowsQualificationOwnedVolume(t *testing.T, image, root string) {
+	t.Helper()
+	// Bind the assigned letter to our exact new image before writing any
+	// fixture directory. Another device claiming the free letter cannot
+	// turn a failed diskpart assignment into a write on an unrelated volume.
+	rootName, _ := syscall.UTF16PtrFromString(root)
+	driveType, _, _ := getDriveType.Call(uintptr(unsafe.Pointer(rootName)))
+	if driveType != 3 {
+		t.Fatal("native unsupported-filesystem fixture was not a fixed drive")
+	}
+	disk, status := windowsQualificationOpenImage(image, 0x80000) // VIRTUAL_DISK_ACCESS_GET_INFO.
 	if status != 0 || disk == 0 || disk == syscall.InvalidHandle {
 		t.Fatal("native owned-image handle premise failed")
 	}
 	var physical [260]uint16
 	capacity := uint32(2 * len(physical))
+	virtdisk := syscall.NewLazyDLL("virtdisk.dll")
 	status, _, _ = virtdisk.NewProc("GetVirtualDiskPhysicalPath").Call(uintptr(disk), uintptr(unsafe.Pointer(&capacity)), uintptr(unsafe.Pointer(&physical[0])))
 	closeErr := syscall.CloseHandle(disk)
 	path := syscall.UTF16ToString(physical[:])
@@ -586,6 +670,82 @@ func windowsQualificationOwnedVolume(t *testing.T, image, root string) {
 	}
 }
 
+func windowsQualificationDetachImage(image string) string {
+	// Enable the administrative volume privilege only on a temporary
+	// impersonation token tied to this locked thread, then revert it before
+	// that thread can return to the Go pool. No process token is modified.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	if windows.ImpersonateSelf(windows.SecurityImpersonation) != nil {
+		return "cleanup_identity"
+	}
+	defer func() {
+		if windows.RevertToSelf() != nil {
+			os.Exit(1)
+		}
+	}()
+	var token windows.Token
+	if windows.OpenThreadToken(windows.CurrentThread(), windows.TOKEN_ADJUST_PRIVILEGES|windows.TOKEN_QUERY, true, &token) != nil {
+		return "cleanup_token"
+	}
+	name, _ := windows.UTF16PtrFromString("SeManageVolumePrivilege")
+	var privilege windows.LUID
+	if windows.LookupPrivilegeValue(nil, name, &privilege) != nil {
+		token.Close()
+		return "cleanup_privilege"
+	}
+	state := windows.Tokenprivileges{PrivilegeCount: 1, Privileges: [1]windows.LUIDAndAttributes{{Luid: privilege, Attributes: windows.SE_PRIVILEGE_ENABLED}}}
+	privilegeErr := windows.AdjustTokenPrivileges(token, false, &state, 0, nil, nil)
+	enabled := privilegeErr == nil && windowsQualificationPrivilegeEnabled(token, privilege)
+	closeErr := token.Close()
+	if !enabled || closeErr != nil {
+		return "cleanup_privilege"
+	}
+	disk, status := windowsQualificationOpenImage(image, 0xc0000) // GET_INFO | DETACH.
+	if status != 0 || disk == 0 || disk == syscall.InvalidHandle {
+		return "cleanup_image_open"
+	}
+	status, _, _ = syscall.NewLazyDLL("virtdisk.dll").NewProc("DetachVirtualDisk").Call(uintptr(disk), 0, 0)
+	closeErr = syscall.CloseHandle(disk)
+	if closeErr != nil {
+		return "cleanup_image_close"
+	}
+	if status == 0 || status == uintptr(windows.ERROR_DEV_NOT_EXIST) {
+		return ""
+	}
+	switch status {
+	case uintptr(windows.ERROR_ACCESS_DENIED):
+		return "cleanup_access"
+	case uintptr(windows.ERROR_PRIVILEGE_NOT_HELD):
+		return "cleanup_privilege"
+	case uintptr(windows.ERROR_DEVICE_IN_USE), uintptr(windows.ERROR_SHARING_VIOLATION):
+		return "cleanup_in_use"
+	}
+	return "cleanup_detach"
+}
+
+func windowsQualificationPrivilegeEnabled(token windows.Token, want windows.LUID) bool {
+	// AdjustTokenPrivileges can report BOOL=true while assigning nothing.
+	// Read the effective token back rather than trusting that wrapper result.
+	var information [4096]byte
+	var returned uint32
+	if windows.GetTokenInformation(token, windows.TokenPrivileges, &information[0], uint32(len(information)), &returned) != nil ||
+		returned < 4 || returned > uint32(len(information)) {
+		return false
+	}
+	count := binary.LittleEndian.Uint32(information[:])
+	if count > (returned-4)/12 {
+		return false
+	}
+	for index := uint32(0); index < count; index++ {
+		entry := information[4+12*index : 4+12*(index+1)]
+		if binary.LittleEndian.Uint32(entry) == want.LowPart && int32(binary.LittleEndian.Uint32(entry[4:])) == want.HighPart {
+			return binary.LittleEndian.Uint32(entry[8:])&windows.SE_PRIVILEGE_ENABLED != 0
+		}
+	}
+	return false
+}
+
 func TestWindowsNativeQualificationUnsupportedVolume(t *testing.T) {
 	windowsQualification(t)
 	base := t.TempDir()
@@ -608,15 +768,8 @@ func TestWindowsNativeQualificationUnsupportedVolume(t *testing.T) {
 	// or a system/user volume. No existing drive is formatted or detached.
 	t.Cleanup(func() {
 		if _, err := os.Stat(image); err == nil {
-			cleanup := "select vdisk file=\"" + image + "\"\r\ndetach vdisk\r\nexit\r\n"
-			if os.WriteFile(script, []byte(cleanup), 0600) != nil {
-				t.Error("native owned-image cleanup script failed")
-				return
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			if exec.CommandContext(ctx, filepath.Join(os.Getenv("SystemRoot"), "System32", "diskpart.exe"), "/s", script).Run() != nil {
-				t.Error("native owned-image cleanup failed")
+			if phase := windowsQualificationDetachImage(image); phase != "" {
+				t.Errorf("native owned-image cleanup failed at fixed phase %s", phase)
 			}
 		}
 	})

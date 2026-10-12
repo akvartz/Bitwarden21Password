@@ -22,7 +22,9 @@ func TestBinaryVersionReportsLinkerMetadataAndClosedPipeFailure(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		binary += ".exe"
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	// A cold -trimpath build recompiles maintained crypto dependencies on small
+	// native runners. Keep its budget separate from short runtime pipe checks.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 	build := exec.CommandContext(ctx, "go", "build", "-trimpath", "-ldflags",
 		"-X github.com/akvartz/Bitwarden21Password/internal/buildinfo.Version="+version+
@@ -33,7 +35,9 @@ func TestBinaryVersionReportsLinkerMetadataAndClosedPipeFailure(t *testing.T) {
 		t.Fatalf("build stamped CLI: %v\n%s", err, output)
 	}
 	t.Run("stamped_json", func(t *testing.T) {
-		cmd := exec.CommandContext(ctx, binary, "version", "--json")
+		runCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+		defer stop()
+		cmd := exec.CommandContext(runCtx, binary, "version", "--json")
 		cmd.Dir = t.TempDir()
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout, cmd.Stderr = &stdout, &stderr
@@ -57,7 +61,9 @@ func TestBinaryVersionReportsLinkerMetadataAndClosedPipeFailure(t *testing.T) {
 	})
 	for _, args := range [][]string{{"version"}, {"version", "--json"}, {"--version"}} {
 		t.Run("closed_pipe_"+strings.Join(args, "_"), func(t *testing.T) {
-			cmd := exec.CommandContext(ctx, binary, args...)
+			runCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+			defer stop()
+			cmd := exec.CommandContext(runCtx, binary, args...)
 			cmd.Dir = t.TempDir()
 			var stderr bytes.Buffer
 			cmd.Stdout, cmd.Stderr = closedSyntheticPipe(t), &stderr
