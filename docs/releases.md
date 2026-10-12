@@ -52,6 +52,8 @@ gh workflow run release.yml --repo akvartz/Bitwarden21Password --ref main -f tag
 
 Dispatch is accepted only from main. The workflow resolves the existing tag to an exact commit, requires it to be an ancestor of the main revision used for dispatch, runs CI against that commit, builds with read-only repository permissions, and checks the tag again before creating a draft prerelease. Existing releases are rejected instead of overwritten. A separate publishing job validates the archive set, manifest and checksums before using its write token; it does not execute checked-out project or artifact code.
 
+A failed upload can leave a partial draft. Inspect the draft and workflow logs before retrying; the workflow refuses an existing release rather than overwriting it. Any draft cleanup or replacement remains a maintainer action.
+
 Review the draft assets, build metadata, capability limitations and CI results before any public release. The workflow always marks drafts as prereleases and never makes them latest. Signing, notarization and independent build provenance are not implemented. Publication, tag changes, stable-release promotion and distribution are separate user decisions.
 
 ## Verification boundaries
