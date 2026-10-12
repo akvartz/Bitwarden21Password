@@ -10,17 +10,29 @@ on:
         description: Exact commit selected by the release workflow
         required: true
         type: string
+      source_version:
+        description: Optional release tag; empty uses the run's synthetic CI version
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.source_sha || 'current' }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}-${{ inputs.source_sha || 'current' }}-${{ inputs.source_version || 'ci' }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
   GOTOOLCHAIN: local
   GOPROXY: 'off'
+  GOPRIVATE: ''
+  GONOPROXY: 'none'
+  GONOSUMDB: 'none'
+  GOSUMDB: 'off'
+  GOENV: 'off'
+  GOWORK: 'off'
+  GOFLAGS: ''
 
 jobs:
   native:
@@ -30,26 +42,53 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2025]
+        # Native evidence for every distributed architecture; standard public
+        # runners, with no additional tools. Labels are asserted in tests.
+        include:
+          - {os: ubuntu-24.04, goos: linux, goarch: amd64, setup_arch: x64}
+          - {os: ubuntu-24.04-arm, goos: linux, goarch: arm64, setup_arch: arm64}
+          - {os: macos-15, goos: darwin, goarch: arm64, setup_arch: arm64}
+          - {os: macos-15-intel, goos: darwin, goarch: amd64, setup_arch: x64}
+          - {os: windows-2025, goos: windows, goarch: amd64, setup_arch: x64}
+          - {os: windows-11-arm, goos: windows, goarch: arm64, setup_arch: arm64}
     defaults:
       run:
         shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.9'
+          architecture: ${{ matrix.setup_arch }}
           check-latest: false
           cache: false
+      - name: Fetch and verify pinned build dependencies
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        run: |
+          go mod download
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
       - name: Native tests and vet
         run: |
           go test -count=1 ./...
           go vet ./...
+      - name: Native privacy qualification
+        if: runner.os == 'macOS' || runner.os == 'Windows'
+        env:
+          PWMIGRATE_NATIVE_PRIVACY_QUALIFY: '1'
+        run: go test -count=1 -v -run '^Test(Darwin|Windows)NativeQualification' ./internal/protectedoutput
       - name: Native CLI smoke
+        env:
+          EXPECTED_GOOS: ${{ matrix.goos }}
+          EXPECTED_GOARCH: ${{ matrix.goarch }}
         run: |
+          test "$(go env GOOS)" = "$EXPECTED_GOOS"
+          test "$(go env GOARCH)" = "$EXPECTED_GOARCH"
           binary="$RUNNER_TEMP/pwmigrate-go"
           if [ "$RUNNER_OS" = Windows ]; then binary="$binary.exe"; fi
           go build -trimpath -o "$binary" ./cmd/pwmigrate
@@ -64,33 +103,48 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.9'
           check-latest: false
           cache: false
+      - name: Fetch and verify pinned build dependencies
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        run: |
+          go mod download
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
       - name: Race tests
         run: go test -race -count=1 ./...
-      - name: Release guard tests
-        run: python3 scripts/ci/test_release_guards.py
+      - name: Release and synthetic helper guard tests
+        run: |
+          python3 -B scripts/ci/test_release_guards.py
+          python3 -B scripts/ci/test_smoke_archive.py
+          python3 -B scripts/qualification/test_prepare.py
+          python3 -B scripts/qualification/test_prepare_ssh.py
       - name: Compile permission test binaries as the ordinary runner
         run: |
           for package in cli migration protectedoutput; do
             go test -c -o "$RUNNER_TEMP/$package.test" "./internal/$package"
           done
       - name: Run uncached permission tests as root
-        # Only the compiled tests run as root. Nested CLI builds use separate
-        # caches and avoid Git's ownership checks; no Git configuration changes.
+        # Only compiled tests run as root. Nested CLI builds use a separate
+        # build cache and the verified runner module cache, without fetching
+        # dependencies or changing Git configuration/ownership checks.
         run: |
+          module_cache=$(go env GOMODCACHE)
           for package in cli migration protectedoutput; do
             (
               cd "internal/$package"
               sudo env "PATH=$PATH" GOTOOLCHAIN=local GOPROXY=off \
+                GOPRIVATE= GONOPROXY=none GONOSUMDB=none GOSUMDB=off GOENV=off GOWORK=off \
                 GOFLAGS=-buildvcs=false \
                 "GOCACHE=$RUNNER_TEMP/root-go-cache" \
-                "GOMODCACHE=$RUNNER_TEMP/root-go-mod" \
+                "GOMODCACHE=$module_cache" \
                 "GOPATH=$RUNNER_TEMP/root-go-path" \
                 "$RUNNER_TEMP/$package.test" -test.count=1 -test.v
             )
@@ -103,16 +157,24 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26.9'
           check-latest: false
           cache: false
+      - name: Fetch and verify pinned build dependencies
+        env:
+          GOPROXY: https://proxy.golang.org
+          GOSUMDB: sum.golang.org
+        run: |
+          go mod download
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
       - name: Build and smoke packaged Linux binary
         env:
-          VERSION: v0.0.0-ci.${{ github.run_number }}
+          VERSION: ${{ inputs.source_version || format('v0.0.0-ci.{0}', github.run_number) }}
         run: |
           commit=$(git rev-parse HEAD)
           output="$RUNNER_TEMP/ci-release"
@@ -127,3 +189,59 @@ jobs:
             "$RUNNER_TEMP/ci-version.json"
           "$binary" help
           "$binary" formats --json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-release-assets
+          path: ${{ runner.temp }}/ci-release/*
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
+
+  packaged-native:
+    name: Packaged binary (${{ matrix.os }})
+    needs: package
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {os: ubuntu-24.04, goos: linux, goarch: amd64, output_supported: 'true'}
+          - {os: ubuntu-24.04-arm, goos: linux, goarch: arm64, output_supported: 'true'}
+          - {os: macos-15, goos: darwin, goarch: arm64, output_supported: 'true'}
+          - {os: macos-15-intel, goos: darwin, goarch: amd64, output_supported: 'true'}
+          - {os: windows-2025, goos: windows, goarch: amd64, output_supported: 'true'}
+          - {os: windows-11-arm, goos: windows, goarch: arm64, output_supported: 'true'}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_sha || github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ci-release-assets
+          path: ${{ runner.temp }}/ci-release-assets
+      - name: Verify and run the exact packaged native executable
+        env:
+          SOURCE_COMMIT: ${{ inputs.source_sha || github.event.pull_request.head.sha || github.sha }}
+          VERSION: ${{ inputs.source_version || format('v0.0.0-ci.{0}', github.run_number) }}
+          EXPECTED_GOOS: ${{ matrix.goos }}
+          EXPECTED_GOARCH: ${{ matrix.goarch }}
+          OUTPUT_SUPPORTED: ${{ matrix.output_supported }}
+        run: |
+          if command -v python3 >/dev/null 2>&1; then
+            python_command=python3
+          elif command -v python >/dev/null 2>&1; then
+            python_command=python
+          else
+            echo 'Native packaged check requires the runner-provisioned Python interpreter.' >&2
+            exit 1
+          fi
+          "$python_command" scripts/ci/smoke_archive.py \
+            --directory "$RUNNER_TEMP/ci-release-assets" \
+            --goos "$EXPECTED_GOOS" --goarch "$EXPECTED_GOARCH" \
+            --commit "$SOURCE_COMMIT" --version "$VERSION" \
+            --expect-output-supported "$OUTPUT_SUPPORTED"

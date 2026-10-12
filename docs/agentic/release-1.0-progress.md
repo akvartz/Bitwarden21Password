@@ -1,0 +1,421 @@
+# pwmigrate 1.0 acceptance and execution ledger
+
+Updated 2026-10-12 UTC. Objective: the finished, qualified 1.0 Go CLI in the
+accepted design and supplied [handoff](handoff-1.0.0.md). **Not yet complete.**
+Tags, publication and security-sensitive merges remain maintainer actions.
+
+Canonical base: `7777ae112f787b8d6e1ddbc00b24f0496733501b`, independently checked
+against ordinary Git fetch and live PR #4 merged state. Work is on
+`feat/1.0-release`, preserving earlier histories. Initial reviewed candidate
+commit `e4cfedf6e33d601e036a8c8b5c67cae9bca182ae`, tree
+`2623d903813019330050f17b1e30ead9e8e80416`, was pushed through ordinary
+Git without rewriting history and is attached as unmerged draft
+[PR #5](https://github.com/akvartz/Bitwarden21Password/pull/5). This ledger substitutes for a
+native goal API, which is unavailable. The referenced personal working agreement
+is absent; AGENTS.md, accepted design and the handoff govern this session.
+Local primary-source research scratch is excluded from Git and build inputs.
+
+## Acceptance matrix
+
+| Gate | Current implementation and evidence | Remaining completion condition |
+| --- | --- | --- |
+| Provider routes | Six directional Bitwarden/1PUX/Proton profiles; strict snapshots; login/note/card/identity and documented typed fields; intermediary losses disclosed; independent/adversarial review | Actual disposable-vault import and re-export qualification for each claimed profile |
+| Browser sources | Chrome/Chromium, native Firefox and Safari/OTPAuth CSV into all three providers: nine routes; primary schema evidence and independent fixtures | Native browser export and destination import qualification |
+| Auditable fidelity | Every selected leaf/empty container and metadata field receives a disposition; exact credentials/duplicates retained; unsafe unfamiliar records block; omitted attachments/passkeys/vault relationships require exact review | Provider observations of supported values and disclosed losses; no working passkey claim |
+| SSH | Ed25519 across all six provider directions; RSA 2048/3072/4096 Bitwarden↔Proton and 1PUX→Bitwarden/Proton; maintained SSH/x509 parsing, exact ASN checks, validated pairs and fingerprints; native custom-section relocation and private representation dispositions | Native import/agent authentication; Bitwarden/Proton RSA→1PUX metadata token unverified and blocked |
+| Archives | Extraction-free ZIP, local/central/index validation, compressed/expanded/entry/depth bounds, unconditional CRC and complete compressed-span consumption; negative/fuzz/race reviews | Native exporter fixtures and provider archive acceptance |
+| Encrypted inputs | Bitwarden password-protected PBKDF2/Argon2id authenticated envelopes; bounded Proton OpenPGP profile; independent cryptography/GnuPG/provider component vectors, tamper tests and two review seats | Native app-created encrypted-export qualification; account-bound/unknown profiles remain rejected |
+| Recovery | age v1.3.2 X25519 writer/reader, authenticated exact whole-original framing, key handling, standalone save/recover and conversion retention; static upstream vector and both official CLI directions for all six formats pass | Other implementation testing is distinct; user verifies saved key/original during provider qualification |
+| Selection/comparison | Intersecting ordinal item/vault/folder/kind selection; multiset destination comparison, ambiguity/unobservable fields; SSH key representations compared semantically; no values/fingerprints in reports | Supplied native destination re-export tests; comparison never certifies import/authentication |
+| Linux output | Native private anchored output, fixed names, no replacement, sync/readback/close, cancellation/fault/concurrency tests; reviewer probes including recovery failure/cancellation pass | Final exact-commit CI/root and packaged runtime checks |
+| macOS/Windows output | Native amd64/arm64 privacy and public conversion/recovery journeys passed on both platforms; exact Windows PowerShell recipe passed on both architectures; public writers enabled on all three OSes | Final exact-commit/artifact evidence |
+| CLI | Human/JSON help, safe inventory/plan/review/receipts, explicit one-shot issue acknowledgment, progress, exact hidden/stdin/JSON passwords, recovery/comparison; actual PTY and blocked-stream signal probes pass independent/adversarial review | Final packaged/native end-to-end smoke and usability qualification |
+| Documentation | Full ordinary-user journeys, limits, recovery/selection/comparison and directional matrix; stale merged status corrected; provider procedure explicitly NOT RUN; default kit fifteen routes/591 checks and additive SSH companion six routes/144 checks | Default twelve and companion fourteen regressions pass; final native acceptance and immutable candidate links/evidence pending |
+| Release candidate | Pinned patched Go 1.26.9; six-target no-clobber packager and existing guarded draft workflow; dependency-cache tamper review | Dependency pin/source/cache/environment gates and two review seats pass; clean-commit archives/asset guards and exact-head hosted/native and packaged runtime evidence pending |
+| Stable promotion | Runbook defines deliberate v1.0.0 build/promotion; no tag/release created | All qualification gates; explicit signing/notarization/provenance policy; user-owned merge/tag/draft/promotion |
+
+## Dependencies and execution
+
+The user explicitly authorized fetching maintained pinned dependencies on
+2026-10-12: x/crypto v0.58.0, gopenpgp/v3 v3.5.2, age v1.3.2 and required
+transitive dependencies. The reviewed graph is frozen in go.mod/go.sum; it also
+includes direct go-crypto v1.5.2, x/sys v0.49.0 and x/term v0.47.0. No tools were
+installed. The already-provisioned toolchain is Go 1.26.9 at
+`/workspace/toolchains/go1.26.9/go/bin/go`; `/usr/bin/go` is unrelated software.
+
+Local checks use GOTOOLCHAIN=local, GOPROXY=off, GOCACHE=/tmp/pwmigrate-go-build
+and GOMODCACHE=/tmp/pwmigrate-go-mod. Fetching is a separate bounded build step
+through the configured proxy. circl v1.6.3 was fetched from its allowed upstream
+with GOPROXY=direct after the module proxy's storage redirect was denied; the
+configured network proxy remained in use. Hosted workflows separately download
+and verify pins, require unchanged module files, then test/build offline.
+
+## Review and verification evidence
+
+- Full uncached Go suite, full uncached race suite, full vet and ten Python
+  release-guard tests passed before the final SSH/dependency/CLI corrections.
+  The final integrated uncached suite, full race suite and vet passed after SSH, dependency preflight and provider exact-output guard integration. A later formats capability Boolean passed its focused RED/GREEN; native-only fixtures await hosted execution.
+- Independent and adversarial seats covered parsing/archives, provider mappings,
+  field accounting, crypto/recovery, approval/output, selection/comparison,
+  actual CLI processes and workflow permissions. Synthetic fixtures only.
+- Review-driven RED/GREEN corrections include archive zero-CRC and ignored
+  compressed-tail data; transient/deep JSON path amplification; cross-route
+  quadratic accounting; understated importer-loss locations; terminal signal
+  restoration and canonical-line truncation; blocked prompt/report/completion
+  cancellation; and duplicate/unknown ASN fields in PKCS8/RSA containers.
+  Scoped post-fix re-reviews pass. The coordinated mutable module-cache hash and inherited private-module
+  network bypass findings were reproduced, fixed with maintained Go preflights
+  and explicit offline environment pins, then passed separate re-reviews.
+- Official age CLI interoperation passed for six formats in both directions,
+  independently framed with opaque binary source bytes. The executable was
+  built, not installed, from the authorized pinned age v1.3.2 module and reports
+  `(devel)`; it is the official CLI using the maintained implementation, not
+  independent cryptographic implementation evidence. The opt-in test makes
+  this check reproducible with a provisioned absolute executable path.
+- Linux tests execute native operations. macOS/Windows candidate test binaries
+  have only cross-compiled locally; no native success is asserted. Hosted native fixtures now include real alternate-principal denial and
+  ordinary-user positive output, foreign-owner rejection, private retained
+  partials, permitted/rejected volumes and real junction controls. Separate
+  source review found and corrected a native API call and fixture ownership/
+  cleanup premises; cross-compilation never substitutes for executing them.
+- Actual provider imports, native app-created encrypted exports, SSH agent
+  authentication, signing and public release promotion are NOT RUN.
+  Foreign-platform archive runtime smoke passed in the initial hosted run
+  recorded below. Checklists do not substitute for results.
+
+## Next executable steps
+
+1. Pin packaged documentation to a reviewed public
+   source snapshot, then package all six targets from the clean exact commit
+   with a fresh candidate version. Verify every member/header/metadata/checksum,
+   prepare both private synthetic kits with the stamped Linux binary, and obtain
+   fresh exact-head hosted CI. PR #5 and the resulting artifact metadata carry
+   post-build evidence; this ledger is a pre-build documentation snapshot.
+2. Run the concrete synthetic provider qualification procedure with the user;
+   record provider/version/platform/case outcomes. Continue independent work
+   while awaiting results; never receive real vault files or credentials.
+3. Resolve delivery authenticity/provenance policy. Only a fully qualified candidate can be called 1.0
+   ready; publication remains the maintainer's deliberate action.
+
+## Initial clean candidate and hosted evidence
+
+Clean `e4cfedf` built all six `v1.0.0-rc.1` archives with Go 1.26.9. The
+complete set passed the native archive helper on Linux amd64 and the actual
+publishing workflow's eight-asset/manifest/checksum validator without dispatch.
+Each archive contains the executable, README, project license, dependency
+notices and exact BUILD-INFO. No tag or release exists. Preserved artifacts:
+`/workspace/artifacts/pwmigrate/pwmigrate-release-1.0.0-rc.1-e4cfedf`.
+
+[Initial hosted CI 38211874470](https://github.com/akvartz/Bitwarden21Password/actions/runs/38211874470)
+ran against that exact commit. Linux amd64/arm64 tests, vet and source smoke,
+Linux race/root/helper guards, six-platform packaging, and **all six actual
+packaged native binary** checks passed. Public macOS/Windows writing remained
+disabled. Native qualification exposed concrete failures being corrected:
+
+- Intel macOS's cold linker-metadata test build exceeded its old 60-second
+  deadline; compilation and runtime deadlines are being separated.
+- ARM macOS passed ordinary candidate tests and APFS/HFS/second-principal/
+  foreign-owner probes, but its FAT fixture was not writable by the caller.
+- Both Windows architectures passed ordinary candidate tests and negative
+  privacy probes, but the standard-user child probe failed and the owned FAT
+  VHD could not be detached during cleanup. Fixed child diagnostics and exact
+  native cleanup will identify/correct the boundary before public enablement.
+
+These failures are not passes or a reason to skip qualification. Candidate
+routing stays disabled until the corrected non-skipping privacy gates pass,
+then public conversion/recovery journeys must pass on a fresh exact commit.
+The user has been asked for available disposable provider testing and the
+required signing/authenticity policy; no answer or approval is inferred.
+
+The next reviewed test-only correction separates a 180-second cold compilation
+budget from the five-second version runtime budget, makes the macOS FAT fixture
+writable with an independently checked ordinary-user positive control, and
+uses owned-image native Windows VHD detachment with scoped, checked privilege.
+Windows child diagnostics expose only a fixed phase enum and still require a
+successful child exit plus the complete marker. Independent and adversarial
+source reviews, focused Linux race tests, and four-target cross-build/vet pass;
+only the next actual native run can establish whether those fixtures pass.
+
+Test-only private-parent fixtures and six provider job/three CLI target journeys
+are ready to execute through the public APIs after platform enablement. Windows
+parents receive an explicit protected user/SYSTEM DACL at creation, then an
+independent handle readback. Public Darwin/Windows writing remains disabled.
+The ordinary-user parent recipe is in native-output-journey.md; its Windows
+PowerShell recipe has source review but has not been executed natively.
+
+## Second native run and macOS activation
+
+[CI 38215250163](https://github.com/akvartz/Bitwarden21Password/actions/runs/38215250163)
+at exact `39802b9cfefc4ddc4c92168060150d158bdeb489` passed both Linux native jobs,
+Linux race/root/helper guards, packaging, all six packaged native checks, and
+both macOS native jobs. Both macOS privacy suites passed actual second-principal
+published/retained-partial denial, foreign-owner rejection and APFS/HFS/FAT
+volume probes without skips. Windows VHD cleanup and other privacy probes now
+pass; both standard-user children still fail before a readable phase marker.
+No Windows enablement follows from this run.
+
+macOS public wrappers are now connected to the identical qualified pipeline,
+with native capability assertions and packaged checks expecting true. The
+activation passes independent/adversarial source review, Linux protected-output/
+CLI race tests, two Darwin cross-build/vet checks and ten release guards.
+The next exact-head CI must establish public conversion/recovery journeys;
+the prior candidate-only run does not establish that evidence.
+
+## Proton SSH completion
+
+The pinned Proton native schema and Bitwarden reader independently establish
+the `sshKey` type, raw private/public strings, sections and hidden fingerprint
+relocation. The adapter admits validated Ed25519 and RSA 2048/3072/4096 pairs;
+it preserves exact admitted raw values or discloses a PKCS#8/PKCS#1→OpenSSH
+representation transformation. User section labels never become native key
+ownership metadata. Text/hidden fields relocate; grouping and unfamiliar fields
+remain explicitly unsupported. RSA output to 1PUX remains blocked.
+
+True behavioral RED/GREEN preceded parser/mapping/output-validation changes.
+Focused tests cover all admitted directions, malformed/encrypted/conflicting/
+oversized keys, unknown and duplicate custom fields, exact output validation,
+source ownership and report redaction. Proton semantic SSH comparison is bound
+to its declared item type and source paths, retaining duplicate counts and
+unobservable-original-encoding caveats. The integrated uncached Go suite, full
+race suite and vet pass. Independent and adversarial source/probe reviews are
+recorded separately before integration. Actual native SSH imports and agent
+authentication remain NOT RUN. An additive independent synthetic SSH kit is
+being prepared; the existing default kit still has fifteen routes/591 core
+checks and does not contain SSH fixtures.
+
+Final independent and adversarial reviews pass the stable Proton adapter,
+comparison hooks and macOS public activation. The next Windows probe grants the
+exact temporary account access only to its shared synthetic startup fixtures,
+then requires the real non-elevated process identity and strict private-writer
+checks. Bounded diagnostics add fixed marker reasons and numeric native/exit
+statuses without paths, SIDs, passwords or child stdout/stderr. Separate source
+reviews and Windows cross-build/vet pass; no native success is inferred.
+
+## Public macOS evidence and Windows diagnostic correction
+
+[CI 38216802179](https://github.com/akvartz/Bitwarden21Password/actions/runs/38216802179)
+at exact `f0c8f15fd6a05a484f667c485352449f5da515a7` passed both macOS native
+jobs with public output enabled. This includes ordinary provider conversion,
+live JSON approval, key creation, whole-source recovery/restoration and the
+native privacy suites. Both Linux native jobs, Linux race/root/helper guards,
+packaging and all six actual packaged native binaries passed as well.
+
+Both Windows children started and created their diagnostic markers but exited
+nonzero. The parent's anchored marker opener returned EINVAL: its synchronous
+NtCreateFile options require an explicit SYNCHRONIZE access bit. The test-only
+correction uses FILE_GENERIC_READ, preserving no-reparse/single-link and bounded
+fixed-code reads, with known/unknown/overlimit/hardlink regressions. Reading the
+marker will identify the remaining child failure; this correction alone does
+not qualify Windows or enable public output.
+
+[CI 38217701084](https://github.com/akvartz/Bitwarden21Password/actions/runs/38217701084)
+at `14ba6d13a9294998bdf8761df1bed3f5808d47cf` passed the marker regressions and
+all non-Windows jobs. The Windows child is now observed at `private_parent`,
+with a valid fixed marker and nonzero exit, before writer invocation. The next
+reviewed test-only probe records the exact constructor/drive/ancestor/base/
+create/close stage and numeric native status, plus an enabled/missing/unknown
+BUILTIN Users premise from its actual token. It is read-only after primary
+failure, never repairs membership/ACLs or substitutes success. Independent and
+adversarial source reviews and both Windows cross-builds/vet pass; actual cause
+observation remains the next native check. Public Windows output stays false.
+
+## Independent SSH qualification companion
+
+The additive `scripts/qualification/prepare_ssh.py` prepares three independent
+synthetic Ed25519 records, including duplicate items/custom fields and exact
+whitespace, for all six provider directions. Its stored-key oracle uses public
+RFC 8032 seed/public literals and independently framed PKCS#8/OpenSSH bytes,
+before any candidate command. All six routes pass **144 local checks**, and
+fourteen protocol/material/privacy/archive/pipe regressions pass. The original
+default kit remains fifteen routes/591 checks with twelve regressions.
+
+Independent review reproduced ZIP64 and special-file entry acceptance in the
+new archive oracle. Behavioral RED/GREEN corrected local/central versions,
+names, flags, modes, extra fields, spans, descriptors and bounded complete
+decompression/CRC; twenty negative variants and ordinary Go mode/timestamp
+positives remain tested. Independent and adversarial final re-reviews pass.
+CI runs the companion guards alongside existing helpers. Every manifest still
+states source-app export, provider import and SSH authentication NOT RUN.
+The companion prepares synthetic files on Linux; its artifacts can be imported
+manually on any claimed native provider client during user-controlled testing.
+
+## Windows current-directory sharing defect
+
+[CI 38219962235](https://github.com/akvartz/Bitwarden21Password/actions/runs/38219962235)
+at `fcedda84f070bcae8fa38047b9547a34d30041f3` observed the same precise failure
+on Windows amd64 and arm64: `private_parent_base`, NTSTATUS `0xc0000043`
+(sharing violation), with actual BUILTIN Users membership enabled. The child
+was using the fixture base as its current directory. Windows retains a handle
+there without delete sharing; the existing-parent opener unnecessarily requested
+DELETE through ALL_ACCESS. This is a writer-access defect, not a missing group.
+
+The correction opens existing parents with read/traverse/security/volume and
+FILE_ADD_SUBDIRECTORY rights (`0x001200ad`), including a final drive root.
+Private owner/DACL/volume/reparse checks still precede writing, and new job/file
+handles retain publication rights. Test-only owner/DACL mutation callers now
+request their exact rights through an anchored fixture helper. The current-
+directory regression first requires the actual old-access sharing failure,
+then checks exact bytes and parent/job/file privacy. The standard-user child
+keeps its original current directory. Both Windows test cross-builds and vet
+pass; separate independent and adversarial production-diff reviews pass. Public Windows
+output stays false until the next native qualification passes on both targets.
+
+## Qualified Windows privacy and public activation
+
+[CI 38222484451](https://github.com/akvartz/Bitwarden21Password/actions/runs/38222484451)
+at exact `04bf2b56fdba8e54a245c19d4754cbe471e20268` passed **all fourteen jobs**.
+Both Windows architectures passed the actual standard-user constructor/writer,
+alternate-principal published/retained-partial denial, foreign-owner rejection,
+real junction controls, owned FAT volume rejection/cleanup and post-publication
+sync/file/job/parent-close failure gates without skips. The ordinary CWD
+regression passed along with native tests/vet. Public Windows remained false
+in that run, so it establishes candidate privacy rather than public CLI output.
+
+Public Windows wrappers now call that identical qualified pipeline and the
+capability assertions/packaged checks require true on Linux, macOS and Windows.
+No privacy or publication policy changes accompany activation. Separate source
+review and cross-build/vet precede integration; the next native run must pass
+public provider conversion, live approval, key creation and whole-source
+recovery/restoration on both Windows architectures. Native provider acceptance,
+source-app encrypted exports/SSH authentication and authenticity policy remain
+independent unfinished gates.
+
+The exact documented PowerShell parent-preparation recipe now has a native
+regression: it runs inbox PowerShell with bounded private capture, checks the
+created parent through independent SDK handles, writes fixed synthetic output
+through the public writer, and requires rerun refusal without changing existing
+bytes or privacy. It covers the runner account; the separate native child covers
+the standard-user writer. Independent/adversarial source reviews, both Windows
+test cross-builds/vet, Linux protected-output/CLI race checks and ten release
+guards pass. Actual PowerShell execution awaits the next native CI.
+
+The final acceptance audit independently reproduced a remaining engineering
+gap: provider preflight retains identical records but does not flag duplicates.
+Browser grouping and multiset comparison are correct. Provider inventory and
+selected-plan duplicate grouping must be completed and reviewed before the
+final candidate; this is not an external qualification gate.
+
+## Public Windows journeys and PowerShell process bound
+
+[CI 38225656989](https://github.com/akvartz/Bitwarden21Password/actions/runs/38225656989)
+at exact `0ab4994537c46cef8e26bd44e36e8db29c214537` passed thirteen of fourteen
+jobs, including all six actual packaged binaries. Both Windows public provider
+and CLI conversion/approval/key/recovery packages passed. Windows amd64 also
+passed the exact documented PowerShell recipe and all native privacy gates.
+Windows arm64's first PowerShell invocation exceeded its 30-second process
+bound, so that job failed and its later privacy step did not execute. This is
+not a successful exact-head native run.
+
+The scoped test correction permits a bounded 180-second first inbox
+PowerShell/.NET launch and retains a 30-second rerun-refusal budget and one-second
+pipe wait bound. Cold startup under concurrent package builds is a hypothesis,
+not a diagnosed provider or ACL defect. Every exact-script success, independent
+ACL, public-byte and no-clobber assertion remains mandatory; there is no skip or
+retry. Fixed phase diagnostics distinguish first launch from rerun without
+publishing child output. Both Windows cross-builds/vet pass; separate reviews
+pass independently and adversarially. A fresh native run must establish actual
+arm64 success.
+
+The same acceptance audit reproduced a second bounded accounting gap: an empty
+Bitwarden root `items` array is excluded from metadata. It must count as an
+empty-container field and receive a disposition, while nonempty records remain
+record fields only. This correction is being completed with provider grouping.
+
+## All-platform public output and documented setup qualified
+
+[CI 38226720660](https://github.com/akvartz/Bitwarden21Password/actions/runs/38226720660)
+at exact `d85907c6424d18d3396a9d3b0b1485d56945181d` passed **all fourteen jobs**.
+Both Windows public provider/CLI conversion, live approval, key and exact
+whole-source recovery journeys passed, as did the actual documented inbox
+PowerShell recipe, private ACL/public byte/no-clobber assertions and all native
+privacy qualification gates. The arm64 protected-output package completed in
+62.994 seconds with the bounded cold allowance; this pass does not establish
+the earlier timeout's exact cause. The recipe covers the runner account;
+standard-user writer qualification remains the distinct native child test.
+Both macOS architectures, Linux race/root/helper guards and all six actual
+packaged native binaries also passed. Later source changes still require fresh
+exact-head evidence. Native provider acceptance/authentication and authenticity
+policy remain unfinished gates.
+
+## Provider preflight and empty-export accounting closed
+
+Provider inventories now flag conservative `exact_provider_content_v1`
+candidates using the complete raw item tree and native vault/folder boundaries.
+Only well-typed identity and creation/update values at fixed native paths are
+exempt. Credentials, key representations, unknown content, number tokens,
+whitespace and ordered arrays remain exact. Reports contain ordinal groups
+only; selected plans filter original ordinals, preserve multiplicity and own
+their review/approval snapshots. The exact-only caveat prevents interpreting
+an empty group list as uniqueness. No record is merged or removed.
+
+An empty Bitwarden root `items` array now consumes one global field-budget leaf,
+appears in metadata and receives a disposition without creating a record or
+double-counting a nonempty item tree. Independent literal RED probes for all
+three providers and empty/encrypted empty exports are GREEN. Full uncached Go
+tests, full race tests, full vet, twelve default-kit and fourteen SSH-kit guards
+pass after these changes. Independent and adversarial source reviews pass;
+additional separate acceptance overlays cover lexical/Unicode/value/type
+distinctions, malformed/native bookkeeping, boundary containers, all 255
+selection subsets, source immutability, deep report ownership and redaction.
+
+Final delivery review found the draft workflow rebuilt tag-stamped archives
+after native checks of differently stamped CI assets. The remaining workflow
+correction must natively check the requested tag version and carry the same
+checked archive set to publishing, preserving the guarded publisher boundary.
+It remains un-dispatched; native smoke means version/help/formats, separately
+from source-built public CLI conversion/recovery and actual provider acceptance.
+
+## Final documentation and release archive continuity reviewed
+
+Ordinary-user instructions now coherently prepare separate output/key/restore
+parents on each platform, verify a chosen archive rather than require the whole
+download set, describe the exact provider/browser duplicate predicates, and
+distinguish current implementation from historical dependency research.
+Source-built public CLI journeys, actual packaged version/help/formats smoke,
+CI-runner PowerShell setup and the separate standard-user writer have precise
+evidence labels. Independent seven-document review, real synthetic Linux
+conversion/key/recovery/raw-byte/permission/checksum journeys, local links,
+shell syntax and unchanged native recipe fences pass.
+
+Reusable CI now accepts an optional strictly packager-validated source version;
+the draft workflow supplies its already validated tag. It builds the six
+archives once, runs their version/help/formats on all six native hosts, then
+the guarded publisher downloads that same current-run artifact after the full
+check job succeeds. The separate rebuild is removed. Same-run artifact identity,
+matrix completion, environment-only version handling, publisher-only write
+permission and all tag/object/eight-asset/draft guards pass independent and
+adversarial review. Ten actual inline guard tests, releasepack behavioral
+version/pre-write/cache/archive tests, YAML and sixteen shell syntax checks
+pass. This is source/local evidence; no tagged workflow or upload ran.
+
+Provider corrections, documentation and pipeline reviews are complete. Final
+clean-source candidate assets, immutable README links and fresh exact-head CI
+are the remaining autonomous preparation steps. Actual disposable provider
+imports/re-exports/native encrypted/browser source exports/SSH authentication
+and the user's delivery authenticity policy remain open external gates. The
+user was asked for those inputs; no reply or approval is inferred from waiting.
+
+## Maintainer qualification and signing decisions
+
+On 2026-10-12 (America/New_York), the user confirmed they can test disposable
+Bitwarden, 1Password and Proton Pass vaults, and selected cryptographically
+signed release files for 1.0. Provider tests remain NOT RUN until actual
+observations arrive. The [first seven-item Bitwarden pilot](provider-pilot.md)
+uses the existing rc.2 1PUX→Bitwarden synthetic artifact, separate local exact
+expectations and the supplied re-export comparison procedure.
+
+The signature mechanism/maintainer identity is not yet provisioned. Existing
+GnuPG 2.4.7 and OpenSSH tools are available; managed-runtime readiness metadata
+reports no configured secrets or outbound signing identity. No private key
+contents were inspected, and no new tools or dependencies were installed.
+OpenPGP checksum-manifest signatures and GitHub workflow-bound keyless signing
+are possible approaches; neither is established by this policy decision alone.
+Existing unsigned rc.2 assets do not satisfy the selected final distribution
+policy. No signature, notarization, tag, merge or release action has occurred.
+
+The user subsequently deferred signing setup and explicitly requested an issue.
+[Issue #6](https://github.com/akvartz/Bitwarden21Password/issues/6) now tracks
+mechanism/identity selection, signature generation/verification of the exact
+checked archives, guarded publication, consumer instructions and evidence.
+The signed-release requirement remains recorded; no unsigned-release approval
+is inferred. Native provider qualification continues independently.

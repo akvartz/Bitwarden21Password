@@ -7,7 +7,7 @@ Read the user's working agreement, docs/superpowers/specs/2026-10-11-go-migratio
 - Preserve exact credentials, unknown fields/types, and duplicates. Never silently normalize, merge, drop, or reinterpret data.
 - Synthetic tests only. No real vaults/secret files, raw parser excerpts, sensitive labels/values, or source-derived fingerprints in logs/reports/commits.
 - No runtime network, telemetry, remote UI assets, or automatic source deletion.
-- No new tools/dependencies installed. M1 uses the standard library. Run Go checks with GOTOOLCHAIN=local GOPROXY=off and approved scratch caches when needed.
+- No new tools or unapproved dependencies installed. On 2026-10-12 the user authorized pinned x/crypto v0.58.0, gopenpgp/v3 v3.5.2, age v1.3.2 and their required dependencies; go.mod/go.sum freeze the reviewed graph. M1 used the standard library. Run checks with GOTOOLCHAIN=local GOPROXY=off and provisioned scratch caches; dependency fetching is a separate build step.
 - Parsing, credentials, encryption, output, and approval changes need edge-case tests first, independent review, and adversarial review.
 - Report local tests, cross-compilation, native platform checks, and provider imports separately. Self-roundtrips prove neither provider acceptance nor passkey functionality.
 - Workers own bounded paths and preserve others' work. Main owns Git integration and durable status.

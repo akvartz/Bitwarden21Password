@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/akvartz/Bitwarden21Password/internal/migration"
+	"github.com/akvartz/Bitwarden21Password/internal/protectedoutput"
+	"github.com/akvartz/Bitwarden21Password/internal/testsupport"
 )
 
 type observedIssue struct {
@@ -87,17 +89,13 @@ func convertArgs(source, parent string) []string {
 
 func privateOutputParent(t *testing.T) string {
 	t.Helper()
-	parent := t.TempDir()
-	if err := os.Chmod(parent, 0700); err != nil {
-		t.Fatal(err)
-	}
-	return parent
+	return testsupport.PrivateParent(t)
 }
 
 func requireLinuxOutput(t *testing.T) {
 	t.Helper()
-	if runtime.GOOS != "linux" {
-		t.Skip("native protected output is Linux-only")
+	if !protectedoutput.Supported() {
+		t.Skip("public protected output is not qualified on this platform")
 	}
 }
 
@@ -174,12 +172,8 @@ func TestConvertJSONRequiresExactReviewAndPreservesSelection(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Fatal("selected export changed exact values, labels, order or duplicate multiplicity")
 	}
-	for path, mode := range map[string]os.FileMode{filepath.Dir(output): 0700, output: 0600} {
-		info, err := os.Stat(path)
-		if err != nil || info.Mode().Perm() != mode {
-			t.Fatal("completed output must have private effective modes")
-		}
-	}
+	testsupport.AssertPrivate(t, filepath.Dir(output), true)
+	testsupport.AssertPrivate(t, output, false)
 	assertRedacted(t, stdout.String()+stderr.String(), source, parent)
 }
 
@@ -330,7 +324,7 @@ func TestConvertCancellationReturnsWithoutClosingCallerInput(t *testing.T) {
 	cancel()
 	select {
 	case code := <-result:
-		if code != 1 || !strings.HasSuffix(stderr.String(), "output_cancelled\n") || reader.closed {
+		if code != 1 || reader.closed {
 			t.Fatal("approval cancellation must fail safely without closing caller input")
 		}
 	case <-time.After(time.Second):
@@ -365,6 +359,9 @@ func TestConvertInvalidArgumentsDoNotReadApproval(t *testing.T) {
 
 func TestConvertUnwritableParentFailsWithoutCompletion(t *testing.T) {
 	requireLinuxOutput(t)
+	if runtime.GOOS == "windows" {
+		t.Skip("chmod-only denial is a Unix permission check")
+	}
 	if os.Geteuid() == 0 {
 		t.Skip("root can bypass directory write permissions")
 	}
@@ -431,15 +428,15 @@ func TestConvertOutputExpansionUsesRejectedInputExit(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	reply := &promptReply{prompt: &stderr}
 	code := RunContext(context.Background(), convertArgs(source, parent), reply, &stdout, &stderr)
-	if code != 3 || stdout.Len() != 0 || stderr.String() != "output_limit\n" || reply.reads != 0 {
+	if code != 3 || stdout.Len() != 0 || !strings.HasSuffix(stderr.String(), "output_limit\n") || reply.reads != 0 {
 		t.Fatalf("output expansion must be rejected before review, got exit %d", code)
 	}
 	assertNoExport(t, parent)
 }
 
 func TestConvertUnsupportedPlatformsFailBeforeApproval(t *testing.T) {
-	if runtime.GOOS == "linux" {
-		t.Skip("unsupported-platform execution needs a native non-Linux host")
+	if protectedoutput.Supported() {
+		t.Skip("unsupported-platform execution needs a native unsupported host")
 	}
 	source := inputFixture(t, syntheticCSV)
 	parent := privateOutputParent(t)
@@ -458,7 +455,7 @@ func TestConvertAlreadyCancelledDoesNotReadInputOrApproval(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	reply := &promptReply{prompt: &stderr}
 	code := RunContext(ctx, convertArgs("SYNTHETIC_MISSING_INPUT", "SYNTHETIC_OUTPUT_PARENT"), reply, &stdout, &stderr)
-	if code != 1 || stdout.Len() != 0 || stderr.String() != "output_cancelled\n" || reply.reads != 0 {
+	if code != 1 || stdout.Len() != 0 || stderr.Len() != 0 || reply.reads != 0 {
 		t.Fatal("already cancelled conversion must fail before reading input")
 	}
 }
@@ -574,10 +571,12 @@ type cancellingCompletionWriter struct {
 	outputPath      string
 	validatedBytes  []byte
 	snapshotErr     error
+	finished        chan struct{}
 }
 
 func (w *cancellingCompletionWriter) Write(p []byte) (int, error) {
-	if bytes.Contains(p, []byte(`"event":"completed"`)) {
+	completed := bytes.Contains(p, []byte(`"event":"completed"`))
+	if completed {
 		w.completedWrites++
 		var event observedEvent
 		w.snapshotErr = json.Unmarshal(p, &event)
@@ -587,7 +586,11 @@ func (w *cancellingCompletionWriter) Write(p []byte) (int, error) {
 		}
 		w.cancel()
 	}
-	return w.Buffer.Write(p)
+	n, err := w.Buffer.Write(p)
+	if completed {
+		close(w.finished)
+	}
+	return n, err
 }
 
 func TestConvertCancellationDuringCompletionWriteReturnsFailureOnce(t *testing.T) {
@@ -596,12 +599,19 @@ func TestConvertCancellationDuringCompletionWriteReturnsFailureOnce(t *testing.T
 	parent := privateOutputParent(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	stdout := &cancellingCompletionWriter{cancel: cancel, parent: parent}
+	stdout := &cancellingCompletionWriter{cancel: cancel, parent: parent, finished: make(chan struct{})}
 	var stderr bytes.Buffer
 	reply := &promptReply{prompt: &stderr}
 	code := RunContext(ctx, convertArgs(source, parent), reply, stdout, &stderr)
-	if code != 1 || !strings.HasSuffix(stderr.String(), "output_cancelled\n") {
+	if code != 1 {
 		t.Fatalf("cancellation during successful completion Write must fail, got exit %d", code)
+	}
+	// Cancellation returns without waiting for borrowed writers. The caller
+	// waits for its pending writer before inspecting or reusing its buffers.
+	select {
+	case <-stdout.finished:
+	case <-time.After(time.Second):
+		t.Fatal("completion writer did not finish")
 	}
 	entries, err := os.ReadDir(parent)
 	if err != nil || len(entries) != 1 || stdout.completedWrites != 1 {

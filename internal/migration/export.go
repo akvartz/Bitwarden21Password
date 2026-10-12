@@ -61,12 +61,16 @@ func (b *outputBuffer) text(value string) {
 }
 
 func exportChrome(d *Document, selected []int) ([]byte, error) {
-	if d == nil || d.format != ChromeCSV {
+	if d == nil || !IsBrowserFormat(d.format) {
 		return nil, &SafeError{Code: "output_validation"}
 	}
 	indexes := make(map[string]int, len(d.chromeHeaders))
 	for column, header := range d.chromeHeaders {
 		indexes[header] = column
+	}
+	nameIndex := indexes["name"]
+	if d.browserNameFromURL {
+		nameIndex = indexes["url"]
 	}
 	var b outputBuffer
 	b.literal(`{"encrypted":false,"folders":[],"items":[`)
@@ -79,7 +83,7 @@ func exportChrome(d *Document, selected []int) ([]byte, error) {
 			b.literal(",")
 		}
 		b.literal(`{"type":1,"name":`)
-		b.text(row[indexes["name"]])
+		b.text(row[nameIndex])
 		if column, present := indexes["note"]; present {
 			b.literal(`,"notes":`)
 			b.text(row[column])
@@ -88,11 +92,18 @@ func exportChrome(d *Document, selected []int) ([]byte, error) {
 		b.text(row[indexes["username"]])
 		b.literal(`,"password":`)
 		b.text(row[indexes["password"]])
+		if column, present := indexes["totp"]; present && d.format == SafariCSV {
+			b.literal(`,"totp":`)
+			b.text(row[column])
+		}
 		b.literal(`,"uris":[{"uri":`)
 		b.text(row[indexes["url"]])
 		b.literal(`}]},"fields":[`)
 		custom := 0
 		for column, header := range d.chromeHeaders {
+			if header == "totp" && d.format == SafariCSV {
+				continue
+			}
 			switch header {
 			case "name", "url", "username", "password", "note":
 				continue
@@ -127,7 +138,7 @@ func exportChrome(d *Document, selected []int) ([]byte, error) {
 // exact strings, so a self-roundtrip alone can never authorize an export.
 func validateChromeExport(d *Document, selected []int, payload []byte) error {
 	invalid := &SafeError{Code: "output_validation"}
-	if d == nil || d.format != ChromeCSV || len(payload) > maxOutputBytes {
+	if d == nil || !IsBrowserFormat(d.format) || len(payload) > maxOutputBytes {
 		return invalid
 	}
 	decoded, err := Parse(payload, BitwardenJSON)
@@ -146,6 +157,9 @@ func validateChromeExport(d *Document, selected []int, payload []byte) error {
 	notePresent := false
 	customCount := 0
 	for _, header := range d.chromeHeaders {
+		if header == "totp" && d.format == SafariCSV {
+			continue
+		}
 		switch header {
 		case "note":
 			notePresent = true
@@ -173,7 +187,15 @@ func validateChromeExport(d *Document, selected []int, payload []byte) error {
 			return invalid
 		}
 		login, ok := item["login"].(map[string]any)
-		if !ok || len(login) != 3 {
+		expectedLoginKeys := 3
+		if d.format == SafariCSV {
+			for _, header := range d.chromeHeaders {
+				if header == "totp" {
+					expectedLoginKeys++
+				}
+			}
+		}
+		if !ok || len(login) != expectedLoginKeys {
 			return invalid
 		}
 		uris, ok := login["uris"].([]any)
@@ -189,6 +211,13 @@ func validateChromeExport(d *Document, selected []int, payload []byte) error {
 			return invalid
 		}
 		custom := 0
+		if d.browserNameFromURL {
+			for column, header := range d.chromeHeaders {
+				if header == "url" && item["name"] != d.chromeRows[record-1][column] {
+					return invalid
+				}
+			}
+		}
 		for column, header := range d.chromeHeaders {
 			cell := d.chromeRows[record-1][column]
 			var value any
@@ -201,6 +230,12 @@ func validateChromeExport(d *Document, selected []int, payload []byte) error {
 				value = login[header]
 			case "url":
 				value = uri["uri"]
+			case "totp":
+				if d.format == SafariCSV {
+					value = login["totp"]
+					break
+				}
+				fallthrough
 			default:
 				field, ok := fields[custom].(map[string]any)
 				if !ok || len(field) != 3 || !isOne(field["type"]) {

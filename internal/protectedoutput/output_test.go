@@ -30,20 +30,26 @@ func TestErrorAllowlist(t *testing.T) {
 }
 
 func TestUnsupportedPlatformHasNoFilesystemEffects(t *testing.T) {
-	if runtime.GOOS == "linux" {
+	switch runtime.GOOS {
+	case "linux", "darwin", "windows":
 		if !Supported() {
-			t.Fatal("Linux output must be supported")
+			t.Fatal("qualified platform output must be supported")
 		}
 		return
-	}
-	if Supported() {
-		t.Fatal("unqualified platform must fail closed")
+	default:
+		if Supported() {
+			t.Fatal("unsupported platform must fail closed")
+		}
 	}
 	parent := t.TempDir()
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	result, err := Write(ctx, parent, []byte("synthetic payload"))
 	requireFailure(t, result, err, "output_platform")
+	for _, name := range []string{"bitwarden.json", "onepassword.1pux", "proton-pass.zip"} {
+		result, err := WriteNamed(ctx, parent, name, []byte("synthetic payload"))
+		requireFailure(t, result, err, "output_platform")
+	}
 	entries, err := os.ReadDir(parent)
 	if err != nil || len(entries) != 0 {
 		t.Fatal("unsupported write changed the parent")

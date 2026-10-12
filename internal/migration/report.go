@@ -19,6 +19,7 @@ type Plan struct {
 	SelectedRecords           int                `json:"selected_records"`
 	ExcludedRecords           int                `json:"excluded_records"`
 	Fields                    []FieldDisposition `json:"fields"`
+	Metadata                  []FieldDisposition `json:"metadata,omitempty"`
 	DuplicateGroups           [][]int            `json:"duplicate_groups"`
 	OutputEmitted             bool               `json:"output_emitted"`
 	DestinationImportVerified bool               `json:"destination_import_verified"`

@@ -16,7 +16,7 @@ func main() {
 	ctx := context.Background()
 	var stop context.CancelFunc
 	// Read-only commands do not observe a context and retain default signals.
-	if len(os.Args) > 1 && os.Args[1] == "convert" {
+	if len(os.Args) > 1 && (os.Args[1] == "convert" || os.Args[1] == "recovery-key" || os.Args[1] == "recovery-save" || os.Args[1] == "recover") {
 		ctx, stop = signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	}
 	code := cli.RunContext(ctx, os.Args[1:], os.Stdin, os.Stdout, os.Stderr)

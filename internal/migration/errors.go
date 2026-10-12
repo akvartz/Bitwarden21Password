@@ -22,7 +22,9 @@ func (e *SafeError) Error() string {
 		"output_platform", "output_parent", "output_create", "output_write",
 		"output_sync", "output_readback", "output_close", "output_publish",
 		"output_cancelled", "approval_required", "approval_invalid",
-		"invalid_state", "output_limit", "output_validation":
+		"invalid_state", "output_limit", "output_validation", "invalid_archive", "unsupported_version", "field_path_limit",
+		"password_required", "invalid_password", "unsupported_kdf", "kdf_limit", "invalid_encrypted", "authentication_failed",
+		"recovery_source_limit", "recovery_ciphertext_limit", "recovery_payload_limit", "recovery_identity", "recovery_format", "recovery_manifest", "recovery_authentication", "recovery_encrypt":
 		code = e.Code
 	}
 	if e.Record > 0 && e.Column > 0 {

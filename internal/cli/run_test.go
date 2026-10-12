@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/akvartz/Bitwarden21Password/internal/migration"
+	"github.com/akvartz/Bitwarden21Password/internal/protectedoutput"
 )
 
 const syntheticCSV = "name,url,username,password,note,SYNTHETIC_CUSTOM_LABEL\n" +
@@ -79,7 +80,7 @@ func TestInspectBitwardenKeepsMetadataAndUnknownFieldsPrivate(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got.Records != 1 || got.Fields != 6 || got.MetadataFields != 3 || got.Kinds["login"] != 1 || got.DuplicateDetection != "not_evaluated" {
+	if got.Records != 1 || got.Fields != 6 || got.MetadataFields != 3 || got.Kinds["login"] != 1 || got.DuplicateDetection != "exact_provider_content_v1" {
 		t.Fatalf("incorrect Bitwarden accounting: %+v", got)
 	}
 	assertRedacted(t, stdout+stderr, path)
@@ -183,13 +184,14 @@ func TestHumanReportsUseSafeSummaries(t *testing.T) {
 	}
 }
 
-func TestFormatsExposeOnlyM1Capabilities(t *testing.T) {
+func TestFormatsExposeDeclaredProviderRoutes(t *testing.T) {
 	code, stdout, stderr := invoke("formats", "--json")
 	if code != 0 || stderr != "" {
 		t.Fatalf("formats failed: exit %d", code)
 	}
 	var got struct {
-		Formats []struct {
+		OutputPlatformSupported *bool `json:"output_platform_supported"`
+		Formats                 []struct {
 			ID          string   `json:"id"`
 			Inspect     bool     `json:"inspect"`
 			PlanTargets []string `json:"plan_targets"`
@@ -198,14 +200,24 @@ func TestFormatsExposeOnlyM1Capabilities(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Formats) != 2 || got.Formats[0].ID != "chrome-csv" || got.Formats[1].ID != "bitwarden-json" || !got.Formats[0].Inspect || !got.Formats[1].Inspect || !reflect.DeepEqual(got.Formats[0].PlanTargets, []string{"bitwarden-json"}) || len(got.Formats[1].PlanTargets) != 0 {
-		t.Fatalf("formats claim unsupported capabilities: %+v", got)
+	if got.OutputPlatformSupported == nil || *got.OutputPlatformSupported != protectedoutput.Supported() {
+		t.Fatal("formats omitted actual platform output capability")
+	}
+	wantIDs := []string{"chrome-csv", "firefox-csv", "safari-csv", "bitwarden-json", "onepassword-1pux", "proton-pass-zip"}
+	wantTargets := [][]string{{"bitwarden-json", "onepassword-1pux", "proton-pass-zip"}, {"bitwarden-json", "onepassword-1pux", "proton-pass-zip"}, {"bitwarden-json", "onepassword-1pux", "proton-pass-zip"}, {"onepassword-1pux", "proton-pass-zip"}, {"bitwarden-json", "proton-pass-zip"}, {"bitwarden-json", "onepassword-1pux"}}
+	if len(got.Formats) != len(wantIDs) {
+		t.Fatal("formats omitted declared providers")
+	}
+	for i, format := range got.Formats {
+		if format.ID != wantIDs[i] || !format.Inspect || !reflect.DeepEqual(format.PlanTargets, wantTargets[i]) {
+			t.Fatal("formats claim unsupported capabilities")
+		}
 	}
 	code, stdout, stderr = invoke("formats")
-	if code != 0 || stderr != "" || !strings.Contains(stdout, "chrome-csv") || !strings.Contains(stdout, "bitwarden-json") || strings.Contains(stdout, "1password") {
+	if code != 0 || stderr != "" || !strings.Contains(stdout, "chrome-csv") || !strings.Contains(stdout, "bitwarden-json") || !strings.Contains(stdout, "onepassword-1pux") || !strings.Contains(stdout, "proton-pass-zip") {
 		t.Fatal("human formats must describe the supported routes")
 	}
-	for _, term := range []string{"experimental convert to bitwarden-json on Linux", "explicit approval", "Other platforms: read-only", "Destination imports unverified"} {
+	for _, term := range []string{"experimental convert", "explicit approval", "unsupported platforms", "Destination imports unverified"} {
 		if !strings.Contains(stdout, term) {
 			t.Fatalf("human formats omitted capability or limitation %q", term)
 		}

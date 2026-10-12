@@ -8,18 +8,18 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/akvartz/Bitwarden21Password/internal/protectedoutput"
+	"github.com/akvartz/Bitwarden21Password/internal/testsupport"
 )
 
 func mustJob(t *testing.T, d *Document, selection []int, parent string) *Job {
 	t.Helper()
-	if runtime.GOOS != "linux" {
-		t.Skip("native output is Linux-only")
+	if !protectedoutput.Supported() {
+		t.Skip("public protected output is not qualified on this platform")
 	}
 	job, err := d.NewJob(BitwardenJSON, selection, parent)
 	if err != nil {
@@ -253,10 +253,7 @@ func TestJobOwnedInputsAndReviewMutationCannotChangeExecution(t *testing.T) {
 	data := []byte("name,url,username,password, Custom \nsame,u,a,first,v\nexcluded,u,a,second,v\nsame,u,a,third,v\n")
 	d := mustParse(t, data, ChromeCSV)
 	selection := []int{3, 1}
-	parent := t.TempDir()
-	if err := os.Chmod(parent, 0700); err != nil {
-		t.Fatal("private test parent setup failed")
-	}
+	parent := testsupport.PrivateParent(t)
 	job := mustJob(t, d, selection, parent)
 	want := job.Review()
 	for i := range data {
@@ -531,8 +528,8 @@ func TestJobEmptyExportRequiresOnlyExperimentalIssue(t *testing.T) {
 }
 
 func TestJobLimitFailureDoesNotTouchFilesystem(t *testing.T) {
-	if runtime.GOOS != "linux" {
-		t.Skip("native output is Linux-only")
+	if !protectedoutput.Supported() {
+		t.Skip("public protected output is not qualified on this platform")
 	}
 	parent := t.TempDir()
 	d := mustParse(t, []byte("name,url,username,password,"+strings.Repeat("A", 1<<20)+"\n"+strings.Repeat("n,u,a,p,\n", 33)), ChromeCSV)
@@ -548,7 +545,7 @@ func TestJobLimitFailureDoesNotTouchFilesystem(t *testing.T) {
 }
 
 func TestJobUnsupportedPlatformFailsBeforeApproval(t *testing.T) {
-	if runtime.GOOS == "linux" {
+	if protectedoutput.Supported() {
 		t.Skip("unsupported platform test")
 	}
 	d := mustParse(t, []byte("name,url,username,password\nn,u,a,p\n"), ChromeCSV)

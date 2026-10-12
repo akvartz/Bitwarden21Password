@@ -23,6 +23,9 @@ func (d *Document) parseBitwarden(detected bool) error {
 	if _, err := decoder.Token(); err != io.EOF {
 		return &SafeError{Code: "invalid_json"}
 	}
+	if !fieldPathBudget(value, 0) {
+		return &SafeError{Code: "field_path_limit"}
+	}
 	envelopeCode := "invalid_json"
 	if detected {
 		envelopeCode = "unknown_format"
@@ -44,11 +47,9 @@ func (d *Document) parseBitwarden(detected bool) error {
 	}
 	d.inventory = newInventory(BitwardenJSON)
 	d.inventory.Records = len(items)
-	d.inventory.DuplicateDetection = "not_evaluated"
-	d.inventory.Caveats = append(d.inventory.Caveats,
-		"bitwarden_export_coverage_limited", "bitwarden_duplicate_detection_not_evaluated")
+	d.inventory.Caveats = append(d.inventory.Caveats, "bitwarden_export_coverage_limited")
 	for key, value := range root {
-		if key != "items" {
+		if key != "items" || len(items) == 0 {
 			d.inventory.MetadataFields += countJSONFields(value)
 		}
 	}
@@ -94,6 +95,7 @@ func (d *Document) parseBitwarden(detected bool) error {
 		d.inventory.Fields += countJSONFields(item)
 	}
 	d.bitwardenRoot = root
+	d.provider = bitwardenProvider(root)
 	return nil
 }
 
@@ -183,8 +185,9 @@ func (p *strictJSON) readValue(parentDepth int, rootItems bool) (any, error) {
 		if token, err := p.decoder.Token(); err != nil || token != json.Delim(']') {
 			return nil, &SafeError{Code: "invalid_json"}
 		}
-		// The empty root items array represents zero records, not a metadata field.
-		if len(array) == 0 && !rootItems {
+		// Empty arrays are source leaves, including an empty root items array.
+		// Record counts remain separate from this global field budget.
+		if len(array) == 0 {
 			if err := p.addField(); err != nil {
 				return nil, err
 			}

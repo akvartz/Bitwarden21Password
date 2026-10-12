@@ -60,8 +60,8 @@ func TestBitwardenRetainsAllFieldsAndIntegerPrecision(t *testing.T) {
 	if !reflect.DeepEqual(inv.Kinds, map[string]int{"login": 1, "secure_note": 1, "card": 1, "identity": 1, "ssh_key": 1, "unknown": 1}) {
 		t.Fatal("kind counts changed")
 	}
-	if inv.DuplicateDetection != "not_evaluated" || len(inv.DuplicateGroups) != 0 {
-		t.Fatal("Bitwarden duplicate detection was invented")
+	if inv.DuplicateDetection != "exact_provider_content_v1" || len(inv.DuplicateGroups) != 0 {
+		t.Fatal("conservative Bitwarden duplicate rule or counts changed")
 	}
 }
 
@@ -85,8 +85,40 @@ func TestBitwardenNullEmptyAndAbsentValues(t *testing.T) {
 func TestBitwardenEmptyExportMetadataAccounting(t *testing.T) {
 	d := mustParse(t, []byte(`{"encrypted":false,"items":[],"folders":[],"collections":{},"unknown":{"array":[null,true,0],"empty":{}}}`), BitwardenJSON)
 	inv := d.Inspect()
-	if inv.Records != 0 || inv.Fields != 0 || inv.MetadataFields != 7 {
+	if inv.Records != 0 || inv.Fields != 0 || inv.MetadataFields != 8 {
 		t.Fatalf("incorrect empty-export counts: records=%d fields=%d metadata=%d", inv.Records, inv.Fields, inv.MetadataFields)
+	}
+}
+
+func TestBitwardenEmptyItemsIsMetadataWithoutInventingOrDoubleCountingRecords(t *testing.T) {
+	for _, tc := range []struct {
+		items, record int
+		literal       string
+	}{
+		{0, 0, `[]`},
+		{1, 1, `[{"type":2,"name":"synthetic"}]`},
+	} {
+		d := mustParse(t, []byte(`{"encrypted":false,"items":`+tc.literal+`}`), BitwardenJSON)
+		wantMetadata := 1
+		if tc.items == 0 {
+			wantMetadata = 2
+		}
+		if d.Inspect().Records != tc.record || d.Inspect().MetadataFields != wantMetadata || len(d.provider.metadata) != wantMetadata {
+			t.Fatal("empty item array was lost or nonempty record fields were double counted")
+		}
+		foundItems := false
+		for _, field := range d.provider.metadata {
+			if field.path == "/items" {
+				foundItems = reflect.DeepEqual(field.value, []any{})
+			}
+		}
+		if foundItems != (tc.items == 0) {
+			t.Fatal("private metadata inventory did not retain exactly the empty items container")
+		}
+		plan, err := d.Plan(OnePassword1PUX, nil)
+		if err != nil || len(plan.Metadata) != wantMetadata {
+			t.Fatal("empty items container lacked a metadata disposition")
+		}
 	}
 }
 
@@ -145,7 +177,7 @@ func TestBitwardenLimits(t *testing.T) {
 	t.Run("depth_boundary", func(t *testing.T) {
 		data := `{"encrypted":false,"items":[],"deep":` + strings.Repeat("[", MaxJSONDepth-1) + "null" + strings.Repeat("]", MaxJSONDepth-1) + "}"
 		d := mustParse(t, []byte(data), BitwardenJSON)
-		if d.Inspect().MetadataFields != 2 {
+		if d.Inspect().MetadataFields != 3 {
 			t.Fatal("deep field count changed")
 		}
 		data = `{"encrypted":false,"items":[],"deep":` + strings.Repeat("[", MaxJSONDepth) + "null" + strings.Repeat("]", MaxJSONDepth) + "}"
@@ -162,12 +194,12 @@ func TestBitwardenLimits(t *testing.T) {
 		requireSafeCode(t, []byte(data), BitwardenJSON, "record_limit")
 	})
 	t.Run("field_boundary", func(t *testing.T) {
-		data := `{"encrypted":false,"items":[],"bulk":[` + strings.Repeat("0,", MaxFields-2) + "0]}"
+		data := `{"encrypted":false,"items":[],"bulk":[` + strings.Repeat("0,", MaxFields-3) + "0]}"
 		d := mustParse(t, []byte(data), BitwardenJSON)
 		if d.Inspect().MetadataFields != MaxFields {
 			t.Fatal("metadata field boundary count changed")
 		}
-		data = `{"encrypted":false,"items":[],"bulk":[` + strings.Repeat("0,", MaxFields-1) + "0]}"
+		data = `{"encrypted":false,"items":[],"bulk":[` + strings.Repeat("0,", MaxFields-2) + "0]}"
 		requireSafeCode(t, []byte(data), BitwardenJSON, "field_limit")
 	})
 	t.Run("combined_metadata_and_items", func(t *testing.T) {
@@ -184,9 +216,9 @@ func TestBitwardenJSONContainerBoundary(t *testing.T) {
 		containers, metadata int
 		reject               bool
 	}{
-		{"below", 249999, 249997, false},
-		{"at", 250000, 249998, false},
-		{"over", 250001, 249999, true},
+		{"below", 249999, 249998, false},
+		{"at", 250000, 249999, false},
+		{"over", 250001, 250000, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			leaves := tc.containers - 3
@@ -212,8 +244,8 @@ func TestBitwardenCompactDeepForestContainerLimit(t *testing.T) {
 		branches, metadata int
 		reject             bool
 	}{
-		{"below_budget", 4096, 4097, false},
-		{"over_budget", 4167, 4168, true},
+		{"below_budget", 4096, 4098, false},
+		{"over_budget", 4167, 4169, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			data := []byte(`{"encrypted":false,"items":[],"forest":[` + strings.Repeat(chain+",", tc.branches-1) + chain + "]}")

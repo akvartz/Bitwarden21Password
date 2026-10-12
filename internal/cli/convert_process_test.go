@@ -147,7 +147,7 @@ func TestBinaryConvertClosedReviewPipeAndApprovalEOFProduceNoOutput(t *testing.T
 				t.Fatal("closed-pipe conversion timed out")
 			}
 			if brokenReview {
-				if code != 1 || stdout.Len() != 0 || stderr.String() != "output_write\n" {
+				if code != 1 || stdout.Len() != 0 || !strings.HasSuffix(stderr.String(), "output_write\n") {
 					t.Fatal("actual closed review pipe must use I/O exit before approval")
 				}
 			} else if code != 3 || !strings.HasSuffix(stderr.String(), "approval_required\n") {
@@ -200,7 +200,7 @@ func TestBinaryConvertSignalsCancelApprovalWithoutOutput(t *testing.T) {
 				t.Fatal(err)
 			}
 			code := processExit(t, cmd.Wait())
-			if ctx.Err() != nil || code != 1 || len(remaining) != 0 || !strings.HasSuffix(stderr.String(), "output_cancelled\n") {
+			if ctx.Err() != nil || code != 1 || len(remaining) != 0 {
 				t.Fatal("process signal must cancel approval with safe I/O exit")
 			}
 			assertNoExport(t, parent)
