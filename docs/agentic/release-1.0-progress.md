@@ -28,7 +28,7 @@ Local primary-source research scratch is excluded from Git and build inputs.
 | Recovery | age v1.3.2 X25519 writer/reader, authenticated exact whole-original framing, key handling, standalone save/recover and conversion retention; static upstream vector and both official CLI directions for all six formats pass | Other implementation testing is distinct; user verifies saved key/original during provider qualification |
 | Selection/comparison | Intersecting ordinal item/vault/folder/kind selection; multiset destination comparison, ambiguity/unobservable fields; SSH key representations compared semantically; no values/fingerprints in reports | Supplied native destination re-export tests; comparison never certifies import/authentication |
 | Linux output | Native private anchored output, fixed names, no replacement, sync/readback/close, cancellation/fault/concurrency tests; reviewer probes including recovery failure/cancellation pass | Final exact-commit CI/root and packaged runtime checks |
-| macOS/Windows output | macOS native amd64/arm64 privacy and public conversion/recovery journeys passed; Windows candidate DACL/owner/local-volume/fault/alternate-principal denial probes pass except standard-user child; Windows public writes remain disabled | Qualify the Windows current-directory fix on both architectures before enablement, then native Windows public CLI journeys |
+| macOS/Windows output | macOS native amd64/arm64 privacy and public journeys passed; Windows native amd64/arm64 standard-user, ACL/owner/volume/reparse/failure qualification passed; public writers enabled on all three OSes | Fresh native Windows public conversion/recovery journeys, followed by final exact-commit/artifact evidence |
 | CLI | Human/JSON help, safe inventory/plan/review/receipts, explicit one-shot issue acknowledgment, progress, exact hidden/stdin/JSON passwords, recovery/comparison; actual PTY and blocked-stream signal probes pass independent/adversarial review | Final packaged/native end-to-end smoke and usability qualification |
 | Documentation | Full ordinary-user journeys, limits, recovery/selection/comparison and directional matrix; stale merged status corrected; provider procedure explicitly NOT RUN; default kit fifteen routes/591 checks and additive SSH companion six routes/144 checks | Default twelve and companion fourteen regressions pass; final native acceptance and immutable candidate links/evidence pending |
 | Release candidate | Pinned patched Go 1.26.9; six-target no-clobber packager and existing guarded draft workflow; dependency-cache tamper review | Dependency pin/source/cache/environment gates and two review seats pass; clean-commit archives/asset guards and exact-head hosted/native and packaged runtime evidence pending |
@@ -268,3 +268,38 @@ then checks exact bytes and parent/job/file privacy. The standard-user child
 keeps its original current directory. Both Windows test cross-builds and vet
 pass; separate independent and adversarial production-diff reviews pass. Public Windows
 output stays false until the next native qualification passes on both targets.
+
+## Qualified Windows privacy and public activation
+
+[CI 38222484451](https://github.com/akvartz/Bitwarden21Password/actions/runs/38222484451)
+at exact `04bf2b56fdba8e54a245c19d4754cbe471e20268` passed **all fourteen jobs**.
+Both Windows architectures passed the actual standard-user constructor/writer,
+alternate-principal published/retained-partial denial, foreign-owner rejection,
+real junction controls, owned FAT volume rejection/cleanup and post-publication
+sync/file/job/parent-close failure gates without skips. The ordinary CWD
+regression passed along with native tests/vet. Public Windows remained false
+in that run, so it establishes candidate privacy rather than public CLI output.
+
+Public Windows wrappers now call that identical qualified pipeline and the
+capability assertions/packaged checks require true on Linux, macOS and Windows.
+No privacy or publication policy changes accompany activation. Separate source
+review and cross-build/vet precede integration; the next native run must pass
+public provider conversion, live approval, key creation and whole-source
+recovery/restoration on both Windows architectures. Native provider acceptance,
+source-app encrypted exports/SSH authentication and authenticity policy remain
+independent unfinished gates.
+
+The exact documented PowerShell parent-preparation recipe now has a native
+regression: it runs inbox PowerShell with bounded private capture, checks the
+created parent through independent SDK handles, writes fixed synthetic output
+through the public writer, and requires rerun refusal without changing existing
+bytes or privacy. It covers the runner account; the separate native child covers
+the standard-user writer. Independent/adversarial source reviews, both Windows
+test cross-builds/vet, Linux protected-output/CLI race checks and ten release
+guards pass. Actual PowerShell execution awaits the next native CI.
+
+The final acceptance audit independently reproduced a remaining engineering
+gap: provider preflight retains identical records but does not flag duplicates.
+Browser grouping and multiset comparison are correct. Provider inventory and
+selected-plan duplicate grouping must be completed and reviewed before the
+final candidate; this is not an external qualification gate.

@@ -6,10 +6,9 @@ an optional encrypted recovery copy, and compares a supplied destination
 re-export. Runtime processing needs no network, telemetry or provider login.
 
 **The candidate is experimental. Actual provider-import qualification is not
-run, and Windows public output remains disabled pending native qualification.
-Linux and macOS protected output are enabled in the candidate; public macOS
-CLI journeys for the newly enabled build still need fresh CI. It is not yet a
-qualified or published 1.0.0 release.** Use
+run. Protected output is enabled on Linux, macOS and Windows after platform
+qualification. Fresh public Windows CLI journeys for the newly enabled build
+still need CI. It is not yet a qualified or published 1.0.0 release.** Use
 synthetic data to evaluate it. The [acceptance ledger](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/release-1.0-progress.md)
 records the remaining 1.0 gates; the [release runbook](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/releases.md) separates
 candidate validation from publication.
@@ -144,6 +143,21 @@ mkdir -m 700 "synthetic output"
 ./pwmigrate-go convert --input "synthetic bitwarden.json" --to onepassword-1pux --output-dir "synthetic output"
 ```
 
+On Windows, prepare a new local fixed-NTFS directory with the protected
+current-user/LocalSystem DACL in the
+[native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md).
+Use the recipe's `$outputParent` variable in that PowerShell session:
+
+```powershell
+.\pwmigrate-go.exe inspect --input 'synthetic bitwarden.json' --from bitwarden-json
+.\pwmigrate-go.exe plan --input 'synthetic bitwarden.json' --to onepassword-1pux
+.\pwmigrate-go.exe convert --input 'synthetic bitwarden.json' --to onepassword-1pux --output-dir $outputParent
+```
+
+The PowerShell/.NET setup recipe has source/static review; native fixtures test
+equivalent current-token directory/security APIs. The recipe itself has not
+been executed as native qualification evidence.
+
 Inspection reports record/item-kind counts and source coverage caveats without
 printing names or secrets. Record, vault and folder identifiers in selection
 are positive, unique, one-based **ordinals**, not labels or provider IDs. An
@@ -227,8 +241,10 @@ archive attachments and metadata, in a binary age v1 file. If the original was
 already an encrypted provider export, recovery retains those encrypted bytes;
 its original export password is still needed after restoration.
 
-Create a recovery key in a private existing Linux/macOS directory, then use the
-generated `recovery-key.txt` path shown by its receipt:
+Create a recovery key in a private existing directory prepared for your
+platform, then use the generated `recovery-key.txt` path shown by its receipt.
+These are Linux/macOS command examples; on Windows use `.\pwmigrate-go.exe`
+and a separately prepared private NTFS key directory:
 
 ```sh
 mkdir -m 700 "synthetic keys"
@@ -309,8 +325,11 @@ directory and an exclusively created `0600` partial file. Publication is
 no-clobber; existing files are never replaced. Writes, readback, sync and close
 are checked. Use a suitable local filesystem; the writer needs hard-link and
 sync support. macOS additionally requires local writable APFS/HFS+, ownership
-enabled and no extended ACL on the parent or private artifacts. Public Windows
-output fails closed with `output_platform` pending DACL and volume qualification.
+enabled and no extended ACL on the parent or private artifacts. Windows requires
+a local fixed NTFS volume, no reparse points in the path, current-user ownership
+and a protected DACL with exact full-control current-user/LocalSystem rules and
+no inheritance flags. Each Windows artifact receives its own private descriptor;
+Unix-style `0700`/`0600` arguments do not establish Windows permissions.
 See the [native output journey](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/native-output-journey.md)
 for ordinary-user directory setup. Authored platform code and cross-compilation
 do not constitute native qualification.
@@ -331,8 +350,8 @@ or source deletion occurs.
 | `1` | I/O, local validation or cancellation failure |
 
 Errors use fixed safe codes. For `output_parent`, check the existing directory's
-ownership/permissions and macOS ACL/volume policy; for `output_platform`, use
-supported Linux/macOS output; for
+ownership and your platform's permission/ACL/volume policy; for `output_platform`,
+check `formats --json` and use a build supporting your platform; for
 `password_required`, use a terminal or explicit stdin framing; for
 `authentication_failed`, check the local password and original export without
 posting them. Unsupported formats, encryption profiles or records require a
@@ -381,19 +400,30 @@ and earlier [Chrome-to-Bitwarden checklist](https://github.com/akvartz/Bitwarden
 The earlier checklist describes the baseline evidence; use the current
 `compare` command for supplied re-exports.
 
+The [qualification kit](https://github.com/akvartz/Bitwarden21Password/blob/feat/1.0-release/docs/agentic/qualification-kit.md)
+prepares fifteen default routes with 591 independent local field checks. Its
+optional Ed25519 SSH companion adds six provider directions with 144 local
+key/field checks. Both helpers prepare only independent synthetic fixtures;
+source-app exports, provider imports and SSH authentication remain **NOT RUN**.
+Their preparation currently runs on Linux; generated synthetic artifacts can
+be manually evaluated in native destination clients on other platforms.
+
 | Platform | Inspect, plan, compare, formats, version | Public convert/recovery output |
 | --- | --- | --- |
 | Linux amd64/arm64 | Built for both architectures | Experimental; record native runtime evidence by architecture |
-| macOS amd64/arm64 | Built for both architectures | Enabled after native privacy qualification; new public CLI journey checks pending fresh CI |
-| Windows amd64/arm64 | Built for both architectures | Disabled pending native DACL/volume qualification |
+| macOS amd64/arm64 | Built for both architectures | Enabled; native privacy and public CLI journeys passed on both architectures |
+| Windows amd64/arm64 | Built for both architectures | Enabled after native privacy qualification; newly enabled public CLI journey checks pending fresh CI |
 
 Local tests, native CI, six-architecture packaging and provider imports are
 separate evidence. Cross-compilation proves a build, not native behavior;
 self-roundtrips prove neither provider acceptance nor authentication.
-macOS privacy qualification passed on both architectures at public source
-commit `39802b9` in [run 38215250163](https://github.com/akvartz/Bitwarden21Password/actions/runs/38215250163).
-That evidence predates public writer enablement; fresh checks of the enabled
-CLI remain a separate gate.
+macOS public CLI and native privacy checks passed on both architectures at
+public source commit `04bf2b56fdba8e54a245c19d4754cbe471e20268` in
+[run 38222484451](https://github.com/akvartz/Bitwarden21Password/actions/runs/38222484451).
+That run also passed Windows native privacy qualification on both architectures
+while Windows public output was disabled. Fresh checks of the newly enabled
+Windows CLI remain a separate gate; no native provider import or authentication
+follows from these platform results.
 
 ## Legacy and license
 

@@ -8,16 +8,16 @@ import (
 	"syscall"
 )
 
-// Supported remains false until native DACL, reparse, volume, and failure
-// tests qualify this implementation. A 0600 argument is no Windows ACL proof.
-func Supported() bool { return false }
+// Supported reports whether protected output is enabled on this platform.
+// Native amd64/arm64 qualification covers DACLs, ownership, volumes and failures.
+func Supported() bool { return true }
 
-func write(context.Context, string, []byte) (Result, error) {
-	return Result{}, &Error{Code: "output_platform"}
+func write(ctx context.Context, parent string, payload []byte) (Result, error) {
+	return writeNamed(ctx, parent, fileName, payload)
 }
 
-func writeNamed(context.Context, string, string, []byte) (Result, error) {
-	return Result{}, &Error{Code: "output_platform"}
+func writeNamed(ctx context.Context, parent, name string, payload []byte) (Result, error) {
+	return writeWindowsWithOps(ctx, parent, name, payload, windowsFilesystemOperations())
 }
 
 type windowsOperations struct {
@@ -40,7 +40,7 @@ func windowsFilesystemOperations() windowsOperations {
 }
 
 func writeWindowsCandidate(ctx context.Context, parent string, payload []byte) (Result, error) {
-	return writeWindowsWithOps(ctx, parent, fileName, payload, windowsFilesystemOperations())
+	return write(ctx, parent, payload)
 }
 
 func writeWindowsWithOps(ctx context.Context, parent, name string, payload []byte, ops windowsOperations) (result Result, err error) {

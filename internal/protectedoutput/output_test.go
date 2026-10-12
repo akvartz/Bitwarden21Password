@@ -31,15 +31,11 @@ func TestErrorAllowlist(t *testing.T) {
 
 func TestUnsupportedPlatformHasNoFilesystemEffects(t *testing.T) {
 	switch runtime.GOOS {
-	case "linux", "darwin":
+	case "linux", "darwin", "windows":
 		if !Supported() {
 			t.Fatal("qualified platform output must be supported")
 		}
 		return
-	case "windows":
-		if Supported() {
-			t.Fatal("Windows output must remain disabled pending native qualification")
-		}
 	default:
 		if Supported() {
 			t.Fatal("unsupported platform must fail closed")

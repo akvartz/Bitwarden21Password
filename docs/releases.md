@@ -2,9 +2,9 @@
 
 Releases, tags, security-sensitive merges and stable promotion are maintainer
 actions. This candidate remains experimental: all provider import profiles are
-unqualified, and public Windows output is disabled pending native qualification.
-macOS privacy qualification passed on amd64 and arm64 before public enablement;
-fresh public conversion/recovery evidence is still required. Packaging alone
+unqualified. Linux, macOS and Windows public output are enabled; native macOS
+and Windows privacy qualification passed on amd64 and arm64 before enablement.
+Fresh public Windows conversion/recovery evidence is still required. Packaging alone
 does not satisfy the finished 1.0 objective.
 Use synthetic data for every smoke/import/recovery check.
 
@@ -163,8 +163,8 @@ Packaging still cross-compiles Linux/macOS/Windows amd64/arm64; each packaged
 archive needs runtime evidence on its corresponding native target.
 
 Public conversion, recovery key creation/save and recovery writes are enabled
-on Linux and macOS. Native macOS ACL/volume qualification passed on both
-architectures; record fresh public journeys after enablement. Windows remains
-disabled until its native DACL/volume qualification passes. Provider acceptance, encrypted-export
+on Linux, macOS and Windows. Native macOS ACL/volume and Windows DACL/volume
+qualification passed on both architectures; public macOS journeys passed,
+and fresh public Windows journeys remain required after enablement. Provider acceptance, encrypted-export
 interoperability, recovery interoperability and working authentication are
 independent checks. Record unsupported/missing checks as gaps, not passes.
