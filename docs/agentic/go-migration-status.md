@@ -6,7 +6,7 @@ Designs: [overall migration](../superpowers/specs/2026-10-11-go-migration-design
 
 ## Delivered behavior
 
-- M1 provides strict Chrome CSV and unencrypted Bitwarden JSON inspection, field accounting, source-order selection, duplicate flags and fixed redacted reports. It is published as [PR #2](https://github.com/akvartz/Bitwarden21Password/pull/2), currently open and unmerged.
+- M1 provides strict Chrome CSV and unencrypted Bitwarden JSON inspection, field accounting, source-order selection, duplicate flags and fixed redacted reports. It is published as [PR #2](https://github.com/akvartz/Bitwarden21Password/pull/2), now merged into main at 62bd064f2582b4569eaf7a78f66ec610e41c692d. PR #3 now targets main.
 - M2 adds `convert`: an immutable source snapshot, random per-job review ID, exact issue acknowledgment and one-shot execution. Copied handles, report mutation, stale approvals and concurrent commits cannot authorize a second write.
 - Generated JSON preserves exact selected credentials, notes, original custom labels/values and duplicate multiplicity. Unknown columns become concealed custom fields with explicit review. Known downstream importer changes and rejection risks require acknowledgment.
 - Linux output uses a new private 0700 job directory, exclusive 0600 partial file, same-handle readback, checked sync/close and non-replacing publication. Failures can leave private artifacts; no automatic retry or recursive cleanup occurs.
@@ -34,7 +34,7 @@ Native worktree creation could not target this repository from the chat workspac
 
 ## Publication
 
-Local M2 starts at M1 commit e99b08fe10860d8afb5611ed2c0273e1d0e9d570. Writer commit: 374ca61. Engine commit: fa4714a. CLI commit: bf90906. Final reviewed source commit: a3cf1e6fc5d594d651032d3894bb48c0e3f2ce8c. Later changes only close out this documentation and plan. The security-sensitive PR must remain unmerged.
+Local M2 starts at M1 commit e99b08fe10860d8afb5611ed2c0273e1d0e9d570. Writer commit: 374ca61. Engine commit: fa4714a. CLI commit: bf90906. Initial reviewed source commit: a3cf1e6fc5d594d651032d3894bb48c0e3f2ce8c. Subsequent review corrections are recorded below. The security-sensitive PR must remain unmerged.
 
 M1 was published through the authenticated GitHub Git-data connector after shell SSH/HTTPS transport failed on this host. Its remote head cd90d9fb881d6ac59e2c581787705ca4f872df40 and local M1 head have the same tree ffde1f58ecf629a72dcda4f1da26c55427831242, but different commit identities. Preserve both histories. M2 publication rechecked live PR #2 and used its unchanged branch as the base. Initial remote M2 commit 1348115fda41e1bc5c816e853862ae11ae9a3655 has exactly the reviewed local source tree 9e3993c36ef51ec424a1febc5f4cf37d3faf3124. The documentation closeout uses the same exact-tree comparison and a non-forced update with an expected-head lease. PR #3 is attached to the task. Before future publication, inspect the live PR head and preserve the mapping between local and remote histories. Do not force-push, rewrite history or change system SSH configuration.
 
@@ -47,3 +47,7 @@ At initial M2 publication, exact-head queries returned no commit statuses, pull-
 3. Continue the overall migration plan with qualified profiles, destination re-export comparison, recovery/encryption and a desktop shell. Wails and maintained crypto dependencies require user provisioning; do not install them or substitute custom cryptography.
 
 Native Windows/macOS behavior, actual provider acceptance, passkey transfer, encryption interoperability, signing and release readiness remain unverified. Rust/Cargo is unavailable, so legacy tests were not run. No releases, tags, merge or production deployment occurred.
+
+## PR #3 permission-test feedback
+
+Review comment [4244149977](https://github.com/akvartz/Bitwarden21Password/pull/3#discussion_r4244149977) identified a test-only portability issue: UID0 can create directories under a 0500 parent. TestConvertUnwritableParentFailsWithoutCompletion now skips for effective UID0 before creating fixtures. Unprivileged execution and deterministic protectedoutput mkdir/open fault tests retain failure coverage; production code is unchanged. Independent scoped review passed. The existing CLI test passed before the correction at UID1000; no native-root failing run is claimed. Full go test ./... and the focused injected-mkdir test passed after the correction on the same unprivileged host. Native UID0 execution remains unverified.

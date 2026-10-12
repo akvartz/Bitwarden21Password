@@ -365,6 +365,9 @@ func TestConvertInvalidArgumentsDoNotReadApproval(t *testing.T) {
 
 func TestConvertUnwritableParentFailsWithoutCompletion(t *testing.T) {
 	requireLinuxOutput(t)
+	if os.Geteuid() == 0 {
+		t.Skip("root can bypass directory write permissions")
+	}
 	source := inputFixture(t, syntheticCSV)
 	parent := privateOutputParent(t)
 	if err := os.Chmod(parent, 0500); err != nil {
