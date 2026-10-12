@@ -120,6 +120,7 @@ jobs:
           python3 -B scripts/ci/test_release_guards.py
           python3 -B scripts/ci/test_smoke_archive.py
           python3 -B scripts/qualification/test_prepare.py
+          python3 -B scripts/qualification/test_prepare_ssh.py
       - name: Compile permission test binaries as the ordinary runner
         run: |
           for package in cli migration protectedoutput; do

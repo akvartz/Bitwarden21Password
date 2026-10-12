@@ -44,7 +44,7 @@ type windowsQualificationUser struct {
 // Neither its stdout/stderr nor arbitrary file contents are ever printed.
 func windowsQualificationHelperPhase(value string) string {
 	switch value {
-	case "identity", "private_parent", "writer", "artifact_privacy", "exact_bytes", "writer_cleanup", "foreign_parent", "foreign_dacl", "complete":
+	case "identity", "private_parent", "private_parent_identity", "private_parent_open", "private_parent_drive_open", "private_parent_drive_policy", "private_parent_ancestor", "private_parent_ancestor_policy", "private_parent_base", "private_parent_base_policy", "private_parent_create", "private_parent_root_close", "private_parent_handle_close", "writer", "artifact_privacy", "exact_bytes", "writer_cleanup", "foreign_parent", "foreign_dacl", "complete":
 		return value
 	}
 	return "process_start"
@@ -281,23 +281,197 @@ func windowsQualificationBase(t *testing.T) string {
 
 func windowsQualificationPrivateParent(t *testing.T, base, name string) string {
 	t.Helper()
+	return windowsQualificationPrivateParentProgress(t, base, name, nil)
+}
+
+func windowsQualificationPrivateParentProgress(t *testing.T, base, name string, progress func(string)) string {
+	t.Helper()
+	stage := func(phase string) {
+		if progress != nil {
+			progress(phase)
+		}
+	}
+	failure := func(phase string, code uint32) {
+		if progress != nil {
+			progress(phase)
+			windowsQualificationRecordFailure(t, base, code)
+		}
+	}
+	stage("private_parent_identity")
 	user, err := windowsCurrentUser()
 	if err != nil {
+		failure("private_parent_identity", windowsQualificationDiagnosticCode(err))
 		t.Fatal("native private-fixture identity failed")
 	}
+	stage("private_parent_open")
 	root, err := windowsOpenParent(base)
 	if err != nil {
+		phase, code := windowsQualificationParentProbe(base)
+		if code == 0 {
+			code = windowsQualificationDiagnosticCode(err)
+		}
+		failure(phase, code)
 		t.Fatal("native private-fixture root failed")
 	}
+	stage("private_parent_create")
 	parent, createErr := windowsCreatePrivate(root, name, true, user)
 	rootErr := syscall.CloseHandle(root)
-	if createErr != nil || rootErr != nil {
+	if createErr != nil {
+		failure("private_parent_create", windowsQualificationDiagnosticCode(createErr))
 		t.Fatal("native private-fixture creation failed")
 	}
-	if syscall.CloseHandle(parent) != nil {
+	if rootErr != nil {
+		syscall.CloseHandle(parent)
+		failure("private_parent_root_close", windowsQualificationDiagnosticCode(rootErr))
+		t.Fatal("native private-fixture root close failed")
+	}
+	stage("private_parent_handle_close")
+	if closeErr := syscall.CloseHandle(parent); closeErr != nil {
+		failure("private_parent_handle_close", windowsQualificationDiagnosticCode(closeErr))
 		t.Fatal("native private-fixture close failed")
 	}
 	return filepath.Join(base, name)
+}
+
+func windowsQualificationRecordFailure(t *testing.T, base string, code uint32) {
+	t.Helper()
+	var data [8]byte
+	binary.LittleEndian.PutUint32(data[:], code)
+	binary.LittleEndian.PutUint32(data[4:], windowsQualificationBuiltinUsers())
+	file, err := os.OpenFile(filepath.Join(base, "helper-native-code.bin"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal("native fixed-status diagnostic creation failed")
+	}
+	n, writeErr := file.Write(data[:])
+	closeErr := file.Close()
+	if n != len(data) || writeErr != nil || closeErr != nil {
+		t.Fatal("native fixed-status diagnostic write failed")
+	}
+}
+
+func windowsQualificationReadFailureCode(base string) (uint32, string) {
+	root, err := windowsOpenParent(base)
+	if err != nil {
+		return 0, "unknown"
+	}
+	handle, openErr := windowsChild(root, "helper-native-code.bin", false, false, windows.FILE_GENERIC_READ, nil)
+	closeErr := syscall.CloseHandle(root)
+	if openErr != nil {
+		return 0, "unknown"
+	}
+	file := os.NewFile(uintptr(handle), "native-helper-status")
+	if closeErr != nil || !windowsDiskObject(handle, false) {
+		file.Close()
+		return 0, "unknown"
+	}
+	value, readErr := io.ReadAll(io.LimitReader(file, 9))
+	closeErr = file.Close()
+	if readErr != nil || closeErr != nil || len(value) != 8 {
+		return 0, "unknown"
+	}
+	membership := "unknown"
+	switch binary.LittleEndian.Uint32(value[4:]) {
+	case 0:
+		membership = "missing"
+	case 1:
+		membership = "enabled"
+	}
+	return binary.LittleEndian.Uint32(value), membership
+}
+
+func windowsQualificationBuiltinUsers() uint32 {
+	// This read-only premise query exposes only whether the native process
+	// token contains an enabled BUILTIN Users group; no SID/name is logged.
+	token, err := windows.OpenCurrentProcessToken()
+	if err != nil {
+		return 2
+	}
+	groups, groupErr := token.GetTokenGroups()
+	closeErr := token.Close()
+	if groupErr != nil || closeErr != nil || groups.GroupCount > 256 {
+		return 2
+	}
+	for _, group := range groups.AllGroups() {
+		if group.Sid != nil && group.Sid.IsWellKnown(windows.WinBuiltinUsersSid) &&
+			group.Attributes&windows.SE_GROUP_ENABLED != 0 && group.Attributes&windows.SE_GROUP_USE_FOR_DENY_ONLY == 0 {
+			return 1
+		}
+	}
+	return 0
+}
+
+// After a production parent-open failure, this read-only probe identifies
+// the denied path stage without changing the primary result or privacy gate.
+// It reports only fixed phases and numeric native statuses, never paths.
+func windowsQualificationParentProbe(path string) (string, uint32) {
+	absolute, err := filepath.Abs(path)
+	if err != nil {
+		return "private_parent_open", windowsQualificationDiagnosticCode(err)
+	}
+	volume := filepath.VolumeName(absolute)
+	if len(volume) != 2 || volume[1] != ':' {
+		return "private_parent_open", uint32(windows.ERROR_INVALID_PARAMETER)
+	}
+	name, err := syscall.UTF16PtrFromString(volume + `\`)
+	if err != nil {
+		return "private_parent_open", windowsQualificationDiagnosticCode(err)
+	}
+	root, err := syscall.CreateFile(name, 0x001200a9, syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE,
+		nil, syscall.OPEN_EXISTING, syscall.FILE_FLAG_BACKUP_SEMANTICS|syscall.FILE_FLAG_OPEN_REPARSE_POINT, 0)
+	if err != nil {
+		return "private_parent_drive_open", windowsQualificationDiagnosticCode(err)
+	}
+	if !windowsDiskObject(root, true) || !windowsSupportedVolume(root) {
+		syscall.CloseHandle(root)
+		return "private_parent_drive_policy", 0
+	}
+	components := strings.Split(strings.TrimPrefix(absolute[len(volume):], `\`), `\`)
+	for index, component := range components {
+		phase, policy, access := "private_parent_ancestor", "private_parent_ancestor_policy", uint32(0x001200a9)
+		if index == len(components)-1 {
+			phase, policy, access = "private_parent_base", "private_parent_base_policy", windowsAllAccess
+		}
+		next, status := windowsQualificationProbeChild(root, component, access)
+		closeErr := syscall.CloseHandle(root)
+		if status != 0 {
+			return phase, status
+		}
+		if closeErr != nil {
+			syscall.CloseHandle(next)
+			return "private_parent_root_close", windowsQualificationDiagnosticCode(closeErr)
+		}
+		root = next
+		if !windowsDiskObject(root, true) || !windowsSupportedVolume(root) {
+			syscall.CloseHandle(root)
+			return policy, 0
+		}
+	}
+	closeErr := syscall.CloseHandle(root)
+	return "private_parent_open", windowsQualificationDiagnosticCode(closeErr)
+}
+
+func windowsQualificationProbeChild(parent syscall.Handle, name string, access uint32) (syscall.Handle, uint32) {
+	text, err := syscall.UTF16FromString(name)
+	if err != nil || name == "" || name == "." || name == ".." || strings.ContainsAny(name, `\/:`+"\x00") || len(text)*2 > 65535 {
+		return syscall.InvalidHandle, uint32(windows.STATUS_INVALID_PARAMETER)
+	}
+	unicode := windowsUnicodeString{Length: uint16(2 * (len(text) - 1)), MaximumLength: uint16(2 * len(text)), Buffer: &text[0]}
+	attributes := windowsObjectAttributes{Length: uint32(unsafe.Sizeof(windowsObjectAttributes{})), RootDirectory: parent,
+		ObjectName: &unicode, Attributes: 0x40 | 0x1000}
+	var handle syscall.Handle
+	var information windowsIOStatus
+	status, _, _ := ntCreateFile.Call(uintptr(unsafe.Pointer(&handle)), uintptr(access), uintptr(unsafe.Pointer(&attributes)),
+		uintptr(unsafe.Pointer(&information)), 0, syscall.FILE_ATTRIBUTE_DIRECTORY,
+		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE|syscall.FILE_SHARE_DELETE, 1, 1|0x20|0x200000, 0, 0)
+	runtime.KeepAlive(text)
+	runtime.KeepAlive(attributes)
+	if uint32(status)&0x80000000 != 0 {
+		return syscall.InvalidHandle, uint32(status)
+	}
+	if handle == 0 || handle == syscall.InvalidHandle {
+		return syscall.InvalidHandle, uint32(windows.STATUS_INVALID_HANDLE)
+	}
+	return handle, 0
 }
 
 func windowsQualificationProbe(t *testing.T, path string, directory bool, access uint32, denied bool) {
@@ -477,7 +651,8 @@ func TestWindowsNativeQualificationStandardUserWriter(t *testing.T) {
 		if code == 0xc0000142 {
 			phase = "process_initialization"
 		}
-		t.Fatalf("native standard-user helper failed at fixed phase %s, fixed marker %s, exit status 0x%08x, marker status %d", phase, marker, code, markerCode)
+		nativeCode, membership := windowsQualificationReadFailureCode(base)
+		t.Fatalf("native standard-user helper failed at fixed phase %s, fixed marker %s, exit status 0x%08x, marker status %d, native status 0x%08x, builtin users %s", phase, marker, code, markerCode, nativeCode, membership)
 	}
 	// The standard-user child leaves one empty fixture owned by that user,
 	// with a protected DACL granting only this process's user and SYSTEM.
@@ -518,7 +693,7 @@ func TestWindowsPrivacyQualificationHelper(t *testing.T) {
 		t.Fatal("native helper was not running as the expected standard principal")
 	}
 	progress("private_parent")
-	parent := windowsQualificationPrivateParent(t, base, "standard-user-parent")
+	parent := windowsQualificationPrivateParentProgress(t, base, "standard-user-parent", progress)
 	t.Cleanup(func() {
 		if os.RemoveAll(parent) != nil {
 			t.Error("native standard-user owned-directory cleanup failed")

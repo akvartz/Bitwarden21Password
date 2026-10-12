@@ -66,6 +66,84 @@ trusted Linux binary to reuse it instead. Tests cover malformed protocol types,
 no approval for malformed/unknown issues, corrupt completed archives, private
 modes, no-clobber/parent rejection, safe manifests and credential mutation.
 
+## Optional synthetic SSH companion
+
+The default kit remains fifteen routes with 591 local field checks and contains
+no SSH records. A separate companion prepares the six directed provider routes
+for Ed25519 SSH items, using the published
+[RFC 8032 test vector 1](https://www.rfc-editor.org/rfc/rfc8032#section-7.1).
+These published key bytes are synthetic test material; use them only in a
+disposable qualification environment.
+
+Run this companion on Linux with the same trusted candidate and an existing
+private parent. It accepts no input vault, installs nothing and uses no network:
+
+```sh
+python3 -B scripts/qualification/prepare_ssh.py \
+  --binary /tmp/pwmigrate-go-qualification \
+  --output "synthetic qualification parent/ssh-kit-01"
+
+python3 -B scripts/qualification/test_prepare_ssh.py
+```
+
+`PWMIGRATE_QUALIFICATION_BINARY` also lets these regressions reuse an already
+built trusted Linux binary. The companion's private-directory preparation is
+Linux-only. Its generated Bitwarden JSON, 1PUX and Proton ZIP artifacts can be
+imported manually in a destination client on another platform; that does not
+qualify that platform's writer or SSH integration.
+
+The companion saves three independently authored native-schema sources and all
+six route expectations before invoking any candidate command. Every source has
+three SSH records in order: `ssh-ed25519-basic`, `ssh-ed25519-whitespace`,
+`ssh-ed25519-duplicate`. They exercise leading/trailing key-text whitespace,
+public comments, exact CR/LF notes, repeated items and ordered duplicate
+text/hidden custom fields. Bitwarden and Proton sources contain unencrypted
+OpenSSH keys; the 1PUX source contains PKCS#8 keys and matching duplicated private
+representations, public metadata, fingerprint and `ed25519` type.
+
+It uses the same exact live review/issue/profile/count/completion contract as the
+default kit. Stdout and stderr are drained with fixed byte limits and timeouts;
+child diagnostics remain private. Unknown issues, duplicate JSON or ZIP names,
+unlisted archive members, changed completed plans, unsafe receipt paths and
+key mismatches fail closed. Existing directories are never replaced. Modes,
+partial-failure handling and private-file handling match the default kit.
+Archive validation admits regular or unspecified file types with private or
+unspecified entry modes, stored/deflated payloads and Go's framed UTC timestamp
+extension. It checks local and central names/flags/methods/sizes, complete
+compression and signed data descriptors. ZIP64, special-file modes, unknown or
+malformed extensions, overlapping/gapped member spans and contradictory
+headers are rejected before archive objects are allocated.
+
+The standard-library decoder verifies only this fixed test vector. It checks
+PKCS#8 DER against the known seed and checks unencrypted OpenSSH framing,
+matching check integers, wrapper/embedded public bytes, seed, comment and
+padding. Public text and SHA256 fingerprints must match the independent literal
+expectations. It also checks native SSH kind, record order/count, notes, exact
+custom-field order/multiplicity/concealment, 1PUX metadata agreement and hidden
+Proton fingerprint relocation. Routes that retain OpenSSH text must preserve
+its exact bytes. Representation changes are checked against the known stored
+key material, with explicit private expectations for canonical PKCS#8 or
+generated OpenSSH check integers/comments.
+
+On success, `private-index.json` identifies the three sources and six successful
+artifacts, and `private-expectations.json` contains the exact local values.
+Keep both private. Only `result-manifest.json` contains shareable fixed case and
+route IDs, public binary metadata and counts. Its `source_app_export`,
+`provider_import` and `ssh_authentication` outcomes all remain `not_run`.
+The success line reports `local_key_material=passed`; it does not establish
+native import, signing behavior or SSH authentication. The decoder is not a
+general cryptographic implementation, and the companion does not cover RSA,
+encrypted individual keys or all optional SSH metadata.
+
+For each successful route, import its indexed artifact into a fresh disposable
+destination vault, require three native SSH records and compare the private
+expectations locally. Check duplicate multiplicity, exact retained strings,
+documented representation changes and custom concealment. Record application
+versions and sanitized case/ordinal outcomes. A native destination re-export
+and any authentication against a disposable server you own remain separate
+manual gates. Never publish key text, public-key text or fingerprints as
+evidence. Real native source export behavior still requires the checklist below.
+
 ## Generated files and evidence
 
 | File or directory | Purpose and handling |
@@ -167,8 +245,10 @@ source/profile against each claimed destination.
   shell history or evidence. Wrong password/tampered input must not produce a
   successful artifact. Record native exporter versions and interoperability
   separately; Proton attachment members remain plaintext in its encrypted ZIP.
-- **SSH:** the prepared fifteen-route kit has no SSH records. Create Ed25519
-  keys in a disposable native source and test all provider directions. Test RSA
+- **SSH:** the default fifteen-route kit has no SSH records; the optional
+  companion above prepares independently authored Ed25519 fixtures for six
+  provider directions. Also create Ed25519 keys in a disposable native source
+  and test its exports across all provider directions. Test RSA
   2048/3072/4096-bit Bitwarden ↔ Proton and 1PUX → Bitwarden/Proton. Reverse RSA
   into 1PUX remains blocked on its unverified writer `metadata.keyType` literal.
   Check exact retained strings, disclosed PKCS#8/PKCS#1 → OpenSSH transformations

@@ -216,3 +216,34 @@ correction uses FILE_GENERIC_READ, preserving no-reparse/single-link and bounded
 fixed-code reads, with known/unknown/overlimit/hardlink regressions. Reading the
 marker will identify the remaining child failure; this correction alone does
 not qualify Windows or enable public output.
+
+[CI 38217701084](https://github.com/akvartz/Bitwarden21Password/actions/runs/38217701084)
+at `14ba6d13a9294998bdf8761df1bed3f5808d47cf` passed the marker regressions and
+all non-Windows jobs. The Windows child is now observed at `private_parent`,
+with a valid fixed marker and nonzero exit, before writer invocation. The next
+reviewed test-only probe records the exact constructor/drive/ancestor/base/
+create/close stage and numeric native status, plus an enabled/missing/unknown
+BUILTIN Users premise from its actual token. It is read-only after primary
+failure, never repairs membership/ACLs or substitutes success. Independent and
+adversarial source reviews and both Windows cross-builds/vet pass; actual cause
+observation remains the next native check. Public Windows output stays false.
+
+## Independent SSH qualification companion
+
+The additive `scripts/qualification/prepare_ssh.py` prepares three independent
+synthetic Ed25519 records, including duplicate items/custom fields and exact
+whitespace, for all six provider directions. Its stored-key oracle uses public
+RFC 8032 seed/public literals and independently framed PKCS#8/OpenSSH bytes,
+before any candidate command. All six routes pass **144 local checks**, and
+fourteen protocol/material/privacy/archive/pipe regressions pass. The original
+default kit remains fifteen routes/591 checks with twelve regressions.
+
+Independent review reproduced ZIP64 and special-file entry acceptance in the
+new archive oracle. Behavioral RED/GREEN corrected local/central versions,
+names, flags, modes, extra fields, spans, descriptors and bounded complete
+decompression/CRC; twenty negative variants and ordinary Go mode/timestamp
+positives remain tested. Independent and adversarial final re-reviews pass.
+CI runs the companion guards alongside existing helpers. Every manifest still
+states source-app export, provider import and SSH authentication NOT RUN.
+The companion prepares synthetic files on Linux; its artifacts can be imported
+manually on any claimed native provider client during user-controlled testing.
